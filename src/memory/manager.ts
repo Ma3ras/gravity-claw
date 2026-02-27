@@ -31,6 +31,7 @@ export interface MemorySearchResult {
     score: number;
     category?: string;
     created_at: string;
+    factId?: number;
 }
 
 // ── Memory Manager ──────────────────────────────────────────────────────────
@@ -193,7 +194,7 @@ export class MemoryManager {
         }
 
         const allFacts = await this.db.execute(
-            `SELECT id, content, category, embedding, created_at, updated_at FROM facts`
+            `SELECT id, content, category, embedding, created_at, updated_at, COALESCE(importance_score, 1.0) as importance_score FROM facts`
         );
 
         const scored: MemorySearchResult[] = [];
@@ -207,19 +208,30 @@ export class MemoryManager {
             const score = cosineSimilarity(queryEmbedding, factEmbedding);
 
             if (score > 0.3) {
+                const importance = Number(fact.importance_score) || 1.0;
                 scored.push({
                     type: "fact",
                     content: fact.content as string,
-                    score,
+                    score: score * importance,
                     category: fact.category as string,
                     created_at: fact.created_at as string,
+                    factId: Number(fact.id),
                 });
             }
         }
 
-        return scored
+        const topResults = scored
             .sort((a, b) => b.score - a.score)
             .slice(0, limit);
+
+        // Track access on returned facts (fire-and-forget)
+        for (const r of topResults) {
+            if (r.factId) {
+                void this.trackAccess(r.factId);
+            }
+        }
+
+        return topResults;
     }
 
     // ── Hybrid Search ─────────────────────────────────────────────────────
@@ -305,5 +317,142 @@ export class MemoryManager {
             facts: Number(f.rows[0]?.c ?? 0),
             sessions: Number(s.rows[0]?.c ?? 0),
         };
+    }
+
+    // ── Self-Evolving Memory ──────────────────────────────────────────
+
+    /**
+     * Track that a fact was accessed (bumps hit_count and last_accessed).
+     */
+    async trackAccess(factId: number): Promise<void> {
+        await this.db.execute({
+            sql: `UPDATE facts SET hit_count = COALESCE(hit_count, 0) + 1, last_accessed = datetime('now') WHERE id = ?`,
+            args: [factId],
+        });
+    }
+
+    /**
+     * Apply memory decay — reduce importance of facts not accessed recently.
+     * Facts accessed in the last 7 days keep full score.
+     * Older facts decay towards a minimum of 0.1.
+     */
+    async applyDecay(): Promise<number> {
+        const result = await this.db.execute(`
+            UPDATE facts
+            SET importance_score = MAX(0.1,
+                COALESCE(importance_score, 1.0) * 0.95
+            )
+            WHERE last_accessed IS NOT NULL
+              AND last_accessed < datetime('now', '-7 days')
+              AND COALESCE(importance_score, 1.0) > 0.1
+        `);
+        const affected = result.rowsAffected ?? 0;
+        if (affected > 0) {
+            log.info("Memory decay applied", { factsDecayed: affected });
+        }
+        return Number(affected);
+    }
+
+    /**
+     * Boost importance for frequently accessed facts.
+     */
+    async boostPopular(): Promise<number> {
+        const result = await this.db.execute(`
+            UPDATE facts
+            SET importance_score = MIN(2.0,
+                COALESCE(importance_score, 1.0) * 1.05
+            )
+            WHERE COALESCE(hit_count, 0) > 5
+              AND COALESCE(importance_score, 1.0) < 2.0
+        `);
+        const affected = result.rowsAffected ?? 0;
+        if (affected > 0) {
+            log.info("Popular facts boosted", { factsBoosted: affected });
+        }
+        return Number(affected);
+    }
+
+    /**
+     * Auto-merge very similar facts (>90% similarity).
+     * Keeps the newer/longer version, deletes the duplicate.
+     */
+    async autoMerge(): Promise<number> {
+        const allFacts = await this.db.execute(
+            `SELECT id, content, embedding, hit_count, importance_score FROM facts ORDER BY id`
+        );
+
+        const toDelete: number[] = [];
+
+        for (let i = 0; i < allFacts.rows.length; i++) {
+            const factA = allFacts.rows[i]!;
+            if (toDelete.includes(Number(factA.id))) continue;
+            if (!factA.embedding) continue;
+
+            const bufA = typeof factA.embedding === "string"
+                ? Buffer.from(factA.embedding, "base64")
+                : Buffer.from(factA.embedding as ArrayBuffer);
+            const embA = bufferToEmbedding(bufA);
+
+            for (let j = i + 1; j < allFacts.rows.length; j++) {
+                const factB = allFacts.rows[j]!;
+                if (toDelete.includes(Number(factB.id))) continue;
+                if (!factB.embedding) continue;
+
+                const bufB = typeof factB.embedding === "string"
+                    ? Buffer.from(factB.embedding, "base64")
+                    : Buffer.from(factB.embedding as ArrayBuffer);
+                const embB = bufferToEmbedding(bufB);
+
+                const similarity = cosineSimilarity(embA, embB);
+
+                if (similarity > 0.90) {
+                    // Keep the longer/more detailed fact
+                    const contentA = factA.content as string;
+                    const contentB = factB.content as string;
+                    const keepId = contentA.length >= contentB.length ? Number(factA.id) : Number(factB.id);
+                    const deleteId = keepId === Number(factA.id) ? Number(factB.id) : Number(factA.id);
+
+                    // Merge hit counts
+                    const totalHits = (Number(factA.hit_count) || 0) + (Number(factB.hit_count) || 0);
+                    const maxImportance = Math.max(
+                        Number(factA.importance_score) || 1.0,
+                        Number(factB.importance_score) || 1.0
+                    );
+
+                    await this.db.execute({
+                        sql: `UPDATE facts SET hit_count = ?, importance_score = ? WHERE id = ?`,
+                        args: [totalHits, maxImportance, keepId],
+                    });
+
+                    toDelete.push(deleteId);
+                    log.info("Auto-merged duplicate fact", {
+                        kept: keepId,
+                        deleted: deleteId,
+                        similarity: similarity.toFixed(3),
+                    });
+                }
+            }
+        }
+
+        // Delete merged duplicates
+        for (const id of toDelete) {
+            await this.db.execute({ sql: `DELETE FROM facts WHERE id = ?`, args: [id] });
+        }
+
+        if (toDelete.length > 0) {
+            log.info("Auto-merge complete", { merged: toDelete.length });
+        }
+        return toDelete.length;
+    }
+
+    /**
+     * Run all evolution steps. Call this periodically (e.g., every 50 messages).
+     */
+    async evolve(): Promise<void> {
+        log.info("Running memory evolution...");
+        await this.applyDecay();
+        await this.boostPopular();
+        await this.autoMerge();
+        log.info("Memory evolution complete");
     }
 }

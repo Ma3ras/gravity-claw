@@ -60,6 +60,22 @@ export async function createTables(db: Client): Promise<void> {
         );
     `);
 
+    // ── Migrations: Self-evolving memory columns ──────────────────
+    // Safe to run multiple times — ALTER TABLE IF NOT EXISTS
+    const migrations = [
+        `ALTER TABLE facts ADD COLUMN hit_count INTEGER DEFAULT 0`,
+        `ALTER TABLE facts ADD COLUMN last_accessed TEXT`,
+        `ALTER TABLE facts ADD COLUMN importance_score REAL DEFAULT 1.0`,
+    ];
+
+    for (const sql of migrations) {
+        try {
+            await db.execute(sql);
+        } catch {
+            // Column already exists — ignore
+        }
+    }
+
     log.info("Database tables ready");
 }
 

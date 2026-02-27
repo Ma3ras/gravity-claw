@@ -12,6 +12,7 @@ import { MemoryManager } from "./memory/manager.js";
 import { createBot } from "./bot.js";
 import { createDiscordBot } from "./channels/discord.js";
 import { loadSkills, skillsToPrompt } from "./skills/loader.js";
+import { McpBridge } from "./mcp/bridge.js";
 
 async function main() {
     log.info("Starting Gravity Claw...", {
@@ -41,6 +42,13 @@ async function main() {
     toolRegistry.register(readUrl);
     toolRegistry.register(getWeather);
 
+    // ── Load MCP Tool Servers ────────────────────────────────────
+    const mcpBridge = new McpBridge();
+    const mcpTools = await mcpBridge.loadFromConfig("mcp.json");
+    for (const t of mcpTools) {
+        toolRegistry.register(t);
+    }
+
     log.info(`Registered ${toolRegistry.getAll().length} tool(s)`, {
         tools: toolRegistry.getAll().map((t) => t.name),
     });
@@ -61,6 +69,7 @@ async function main() {
         log.info(`Received ${signal}, shutting down...`);
         bot.stop();
         if (discordBot) discordBot.destroy();
+        mcpBridge.disconnect();
         db.close();
         process.exit(0);
     };

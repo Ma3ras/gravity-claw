@@ -1,0 +1,23 @@
+{
+    "servers": [
+        {
+            "name": "sqlite",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sqlite",
+                "--db-path",
+                "./data/memory.db"
+            ]
+        },
+        {
+            "name": "filesystem",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-filesystem",
+                "./data"
+            ]
+        }
+    ]
+}

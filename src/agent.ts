@@ -53,6 +53,11 @@ export async function runAgent(
     let userMsgId: number | undefined;
     if (memory) {
         userMsgId = await memory.logMessage("user", userMessage, sid);
+
+        // Periodic memory evolution (every ~50 messages)
+        if (userMsgId && userMsgId % 50 === 0) {
+            void memory.evolve();
+        }
     }
 
     // ── Step 2: Recall relevant memories ─────────────────────────────
