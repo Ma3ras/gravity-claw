@@ -12,6 +12,8 @@ export interface Config {
     embeddingBaseUrl: string;
     embeddingModel: string;
     embeddingApiKey: string;
+    tursoDbUrl: string;
+    tursoAuthToken: string;
 }
 
 function requireEnv(name: string): string {
@@ -56,4 +58,6 @@ export const config: Config = {
     embeddingBaseUrl: process.env["EMBEDDING_BASE_URL"] || "https://api.jina.ai",
     embeddingModel: process.env["EMBEDDING_MODEL"] || "jina-embeddings-v3",
     embeddingApiKey: process.env["EMBEDDING_API_KEY"] || "",
+    tursoDbUrl: process.env["TURSO_DATABASE_URL"] || "file:./data/memory.db",
+    tursoAuthToken: process.env["TURSO_AUTH_TOKEN"] || "",
 };

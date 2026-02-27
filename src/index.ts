@@ -4,7 +4,7 @@ import { ToolRegistry } from "./tools/index.js";
 import { getCurrentTime } from "./tools/get-current-time.js";
 import { createMemoryRecallTool } from "./tools/memory-recall.js";
 import { createMemorySaveTool } from "./tools/memory-save.js";
-import { initDatabase } from "./memory/db.js";
+import { initDatabase, createTables } from "./memory/db.js";
 import { MemoryManager } from "./memory/manager.js";
 import { createBot } from "./bot.js";
 
@@ -16,11 +16,12 @@ async function main() {
     });
 
     // ── Initialize memory ────────────────────────────────────────────
-    const db = initDatabase(config.memoryDbPath);
+    const db = initDatabase();
+    await createTables(db);
     const memory = new MemoryManager(db);
-    const stats = memory.getStats();
+    const stats = await memory.getStats();
     log.info("Memory loaded", {
-        dbPath: config.memoryDbPath,
+        db: config.tursoDbUrl.startsWith("libsql://") ? "turso-cloud" : "local",
         messages: stats.messages,
         facts: stats.facts,
         sessions: stats.sessions,

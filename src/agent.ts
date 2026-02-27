@@ -51,7 +51,7 @@ export async function runAgent(
     // ── Step 1: Log user message ─────────────────────────────────────
     let userMsgId: number | undefined;
     if (memory) {
-        userMsgId = memory.logMessage("user", userMessage, sid);
+        userMsgId = await memory.logMessage("user", userMessage, sid);
     }
 
     // ── Step 2: Recall relevant memories ─────────────────────────────
@@ -86,17 +86,17 @@ export async function runAgent(
 
     // Inject recent conversation buffer (with auto-summarization for long conversations)
     if (memory) {
-        const totalMessages = memory.getSessionMessageCount(sid);
+        const totalMessages = await memory.getSessionMessageCount(sid);
         const RECENT_BUFFER_SIZE = 10;
         const SUMMARIZE_THRESHOLD = 20;
 
         if (totalMessages > SUMMARIZE_THRESHOLD) {
             // Long conversation — summarize older messages, keep recent ones verbatim
-            let summary = memory.getSessionSummary(sid);
+            let summary = await memory.getSessionSummary(sid);
 
             if (!summary) {
                 // Generate summary of older messages
-                const olderMessages = memory.getOlderMessages(sid, totalMessages - RECENT_BUFFER_SIZE);
+                const olderMessages = await memory.getOlderMessages(sid, totalMessages - RECENT_BUFFER_SIZE);
                 const conversationText = olderMessages
                     .map((m) => `${m.role}: ${m.content}`)
                     .join("\n");
@@ -111,7 +111,7 @@ export async function runAgent(
                     ]);
                     summary = summaryResponse.content ?? "";
                     if (summary) {
-                        memory.saveSessionSummary(sid, summary);
+                        await memory.saveSessionSummary(sid, summary);
                         log.info("Auto-summarized conversation buffer", {
                             olderMessages: olderMessages.length,
                             summaryLength: summary.length,
@@ -137,13 +137,13 @@ export async function runAgent(
             }
 
             // Add recent messages verbatim
-            const recentMessages = memory.getRecentMessages(sid, RECENT_BUFFER_SIZE);
+            const recentMessages = await memory.getRecentMessages(sid, RECENT_BUFFER_SIZE);
             for (const msg of recentMessages) {
                 messages.push({ role: msg.role, content: msg.content });
             }
         } else {
             // Short conversation — include all messages
-            const recentMessages = memory.getRecentMessages(sid, SUMMARIZE_THRESHOLD);
+            const recentMessages = await memory.getRecentMessages(sid, SUMMARIZE_THRESHOLD);
             for (const msg of recentMessages) {
                 messages.push({ role: msg.role, content: msg.content });
             }
@@ -168,7 +168,7 @@ export async function runAgent(
 
             // ── Step 7: Log reply + background fact extraction ───────
             if (memory) {
-                memory.logMessage("assistant", reply, sid);
+                await memory.logMessage("assistant", reply, sid);
 
                 // Extract facts in background (don't block the reply)
                 extractFactsBackground(userMessage, reply, memory, userMsgId);
