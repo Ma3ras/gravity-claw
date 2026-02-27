@@ -35,8 +35,9 @@ You are an isolated background worker. You have NO persistent memory of previous
 Your ONLY job is to execute the user's prompt below, check the real-world condition using tools, and determine if the condition is met.
 
 RULES:
-1. If the condition is NOT MET (e.g. game is still going, website hasn't changed), reply with exactly one word: "NO". Do not output anything else.
-2. If the condition IS MET (e.g. game is over, score is found), reply starting with "YES: " followed by the message you want to send to the user (e.g. "YES: Game 2 is over! Karmine Corp won 2-0.").`;
+1. If the condition is NOT MET yet (e.g. game is still going), OR if you encounter ANY errors checking the data (e.g. website blocked, fetch failed, content truncated), you MUST reply with exactly one word: "NO". Do not output anything else. Do not apologize or report errors.
+2. If the condition IS MET (e.g. game is over, score is found, website changed), reply starting with "YES: " followed by the message you want to send to the user (e.g. "YES: Game 2 is over! Karmine Corp won 2-0.").
+3. NEVER reply with "YES" if you are just reporting an error or connection issue. Only "YES" if the actual success condition is explicitly met.`;
 
                 const sessionId = `monitor-${task.id}`;
 

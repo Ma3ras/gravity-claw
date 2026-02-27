@@ -49,8 +49,8 @@ export const readUrl: Tool = {
 
             let text = await response.text();
 
-            // Truncate if too long (keep under 4000 chars for LLM context)
-            const MAX_LENGTH = 4000;
+            // Truncate if too long (Cloud LLMs can handle large contexts)
+            const MAX_LENGTH = 45000;
             if (text.length > MAX_LENGTH) {
                 text = text.substring(0, MAX_LENGTH) + "\n\n[... content truncated]";
             }
