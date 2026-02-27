@@ -13,6 +13,7 @@ import { createBot } from "./bot.js";
 import { createDiscordBot } from "./channels/discord.js";
 import { loadSkills, skillsToPrompt } from "./skills/loader.js";
 import { McpBridge } from "./mcp/bridge.js";
+import { startHeartbeat } from "./heartbeat.js";
 
 async function main() {
     log.info("Starting Gravity Claw...", {
@@ -64,9 +65,13 @@ async function main() {
     // ── Start Discord bot (optional) ─────────────────────────────
     const discordBot = createDiscordBot(toolRegistry, memory, skillsPrompt);
 
+    // ── Start Autonomous Heartbeat ───────────────────────────────
+    const heartbeatTimer = startHeartbeat(bot, toolRegistry, memory, skillsPrompt, config.heartbeatIntervalMs);
+
     // Graceful shutdown
     const shutdown = async (signal: string) => {
         log.info(`Received ${signal}, shutting down...`);
+        clearInterval(heartbeatTimer);
         bot.stop();
         if (discordBot) discordBot.destroy();
         mcpBridge.disconnect();

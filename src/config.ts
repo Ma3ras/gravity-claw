@@ -15,6 +15,7 @@ export interface Config {
     tursoDbUrl: string;
     tursoAuthToken: string;
     discordBotToken: string | null;
+    heartbeatIntervalMs: number;
 }
 
 function requireEnv(name: string): string {
@@ -62,4 +63,5 @@ export const config: Config = {
     tursoDbUrl: process.env["TURSO_DATABASE_URL"] || "file:./data/memory.db",
     tursoAuthToken: process.env["TURSO_AUTH_TOKEN"] || "",
     discordBotToken: process.env["DISCORD_BOT_TOKEN"] || null,
+    heartbeatIntervalMs: Number(process.env["HEARTBEAT_INTERVAL_MS"]) || 60 * 60 * 1000, // 1 hour
 };

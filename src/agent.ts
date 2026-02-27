@@ -44,14 +44,15 @@ export async function runAgent(
     toolRegistry: ToolRegistry,
     memory?: MemoryManager,
     sessionId?: string,
-    skillsPrompt?: string
+    skillsPrompt?: string,
+    skipLogging = false
 ): Promise<string> {
     const tools = toolsToOpenAIFormat(toolRegistry.getAll());
     const sid = sessionId ?? "default";
 
     // ── Step 1: Log user message ─────────────────────────────────────
     let userMsgId: number | undefined;
-    if (memory) {
+    if (memory && !skipLogging) {
         userMsgId = await memory.logMessage("user", userMessage, sid);
 
         // Periodic memory evolution (every ~50 messages)
