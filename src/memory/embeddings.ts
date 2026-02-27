@@ -52,7 +52,8 @@ export async function embed(text: string): Promise<Float32Array> {
  */
 export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
     if (a.length !== b.length) {
-        throw new Error(`Vector dimensions mismatch: ${a.length} vs ${b.length}`);
+        log.warn("Vector dimensions mismatch, returning 0 similarity", { aLen: a.length, bLen: b.length });
+        return 0; // Don't crash when switching embedding providers
     }
 
     let dotProduct = 0;
