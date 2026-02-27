@@ -16,6 +16,8 @@ export interface Config {
     tursoAuthToken: string;
     discordBotToken: string | null;
     heartbeatIntervalMs: number;
+    localAiModel: string;
+    ollamaBaseUrl: string;
 }
 
 function requireEnv(name: string): string {
@@ -64,4 +66,6 @@ export const config: Config = {
     tursoAuthToken: process.env["TURSO_AUTH_TOKEN"] || "",
     discordBotToken: process.env["DISCORD_BOT_TOKEN"] || null,
     heartbeatIntervalMs: Number(process.env["HEARTBEAT_INTERVAL_MS"]) || 60 * 60 * 1000, // 1 hour
+    localAiModel: process.env["LOCAL_AI_MODEL"] || "qwen2.5-coder:7b-instruct",
+    ollamaBaseUrl: process.env["OLLAMA_BASE_URL"] || "http://localhost:11434/v1",
 };
