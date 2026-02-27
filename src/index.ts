@@ -4,6 +4,9 @@ import { ToolRegistry } from "./tools/index.js";
 import { getCurrentTime } from "./tools/get-current-time.js";
 import { createMemoryRecallTool } from "./tools/memory-recall.js";
 import { createMemorySaveTool } from "./tools/memory-save.js";
+import { webSearch } from "./tools/web-search.js";
+import { readUrl } from "./tools/read-url.js";
+import { getWeather } from "./tools/weather.js";
 import { initDatabase, createTables } from "./memory/db.js";
 import { MemoryManager } from "./memory/manager.js";
 import { createBot } from "./bot.js";
@@ -32,6 +35,9 @@ async function main() {
     toolRegistry.register(getCurrentTime);
     toolRegistry.register(createMemoryRecallTool(memory));
     toolRegistry.register(createMemorySaveTool(memory));
+    toolRegistry.register(webSearch);
+    toolRegistry.register(readUrl);
+    toolRegistry.register(getWeather);
 
     log.info(`Registered ${toolRegistry.getAll().length} tool(s)`, {
         tools: toolRegistry.getAll().map((t) => t.name),
