@@ -7,8 +7,9 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-// Safety constraint: Only allow operations inside this directory
-const ALLOWED_ROOT = path.resolve(process.cwd());
+// Safety constraint: Allow operations inside the entire D:\ai directory
+// so Gravity Claw can edit other projects or create new ones.
+const ALLOWED_ROOT = path.resolve("d:\\ai");
 
 /**
  * Validates that a requested path is inside the allowed root directory.
