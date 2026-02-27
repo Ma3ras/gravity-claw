@@ -7,7 +7,9 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "sync-node": "tsx src/sync-node.ts"
+    "sync-node": "tsx src/sync-node.ts",
+    "pull-tasks": "tsx scripts/pull-tasks.ts",
+    "complete-task": "tsx scripts/complete-task.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",

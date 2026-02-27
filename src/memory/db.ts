@@ -76,6 +76,16 @@ export async function createTables(db: Client): Promise<void> {
             filepath        TEXT,
             content         TEXT,
             status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed, error
+            status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed, error
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+
+        -- Antigravity Sync Bridge — Tasks for Gemini 3.1 to pick up locally
+        CREATE TABLE IF NOT EXISTS antigravity_tasks (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_path    TEXT NOT NULL,
+            prompt          TEXT NOT NULL,
+            status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed
             created_at      TEXT NOT NULL DEFAULT (datetime('now'))
         );
     `);
