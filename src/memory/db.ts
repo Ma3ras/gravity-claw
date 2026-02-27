@@ -68,6 +68,16 @@ export async function createTables(db: Client): Promise<void> {
             last_run            TEXT NOT NULL DEFAULT (datetime('now', '-1 year')),
             created_at          TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- Remote Headless Executor — proxy commands from cloud to local PC
+        CREATE TABLE IF NOT EXISTS remote_commands (
+            id              TEXT PRIMARY KEY,
+            command_type    TEXT NOT NULL CHECK(command_type IN ('read_file', 'write_file', 'run_command')),
+            filepath        TEXT,
+            content         TEXT,
+            status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed, error
+            created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+        );
     `);
 
     // ── Migrations: Self-evolving memory columns ──────────────────
