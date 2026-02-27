@@ -76,7 +76,6 @@ export async function createTables(db: Client): Promise<void> {
             filepath        TEXT,
             content         TEXT,
             status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed, error
-            status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed, error
             created_at      TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
