@@ -14,6 +14,8 @@ import { createDiscordBot } from "./channels/discord.js";
 import { loadSkills, skillsToPrompt } from "./skills/loader.js";
 import { McpBridge } from "./mcp/bridge.js";
 import { startHeartbeat } from "./heartbeat.js";
+import { createScheduleMonitorTool } from "./tools/schedule-monitor.js";
+import { startMonitorLoop } from "./monitor.js";
 
 async function main() {
     log.info("Starting Gravity Claw...", {
@@ -42,6 +44,9 @@ async function main() {
     toolRegistry.register(webSearch);
     toolRegistry.register(readUrl);
     toolRegistry.register(getWeather);
+    toolRegistry.register(
+        createScheduleMonitorTool(memory, Array.from(config.allowedUserIds)[0] || 0)
+    );
 
     // ── Load MCP Tool Servers ────────────────────────────────────
     const mcpBridge = new McpBridge();
@@ -68,10 +73,14 @@ async function main() {
     // ── Start Autonomous Heartbeat ───────────────────────────────
     const heartbeatTimer = startHeartbeat(bot, toolRegistry, memory, skillsPrompt, config.heartbeatIntervalMs);
 
+    // ── Start Fast Background Monitor ────────────────────────────
+    const monitorTimer = startMonitorLoop(bot, toolRegistry, memory, 60000); // Check every 60s
+
     // Graceful shutdown
     const shutdown = async (signal: string) => {
         log.info(`Received ${signal}, shutting down...`);
         clearInterval(heartbeatTimer);
+        clearInterval(monitorTimer);
         bot.stop();
         if (discordBot) discordBot.destroy();
         mcpBridge.disconnect();

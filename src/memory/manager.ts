@@ -455,4 +455,43 @@ export class MemoryManager {
         await this.autoMerge();
         log.info("Memory evolution complete");
     }
+
+    // ── Background Monitors ─────────────────────────────────────────
+
+    async createMonitor(userId: number, prompt: string, intervalMinutes: number): Promise<number> {
+        const result = await this.db.execute({
+            sql: `INSERT INTO monitors (user_id, prompt, interval_minutes, last_run) VALUES (?, ?, ?, datetime('now', '-1 hour'))`,
+            args: [userId, prompt, intervalMinutes],
+        });
+        log.info("Created background monitor", { monitorId: Number(result.lastInsertRowid), userId });
+        return Number(result.lastInsertRowid);
+    }
+
+    async getDueMonitors(): Promise<Array<{ id: number; user_id: number; prompt: string }>> {
+        const result = await this.db.execute(`
+            SELECT id, user_id, prompt
+            FROM monitors
+            WHERE last_run <= datetime('now', '-' || interval_minutes || ' minutes')
+        `);
+        return result.rows.map(r => ({
+            id: Number(r.id),
+            user_id: Number(r.user_id),
+            prompt: r.prompt as string,
+        }));
+    }
+
+    async updateMonitorLastRun(monitorId: number): Promise<void> {
+        await this.db.execute({
+            sql: `UPDATE monitors SET last_run = datetime('now') WHERE id = ?`,
+            args: [monitorId],
+        });
+    }
+
+    async deleteMonitor(monitorId: number): Promise<void> {
+        await this.db.execute({
+            sql: `DELETE FROM monitors WHERE id = ?`,
+            args: [monitorId],
+        });
+        log.info("Deleted background monitor", { monitorId });
+    }
 }

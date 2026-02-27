@@ -50,13 +50,23 @@ export async function createTables(db: Client): Promise<void> {
             updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
         );
 
-        -- Session summaries — compressed conversation history
+        -- Sessions mapping
         CREATE TABLE IF NOT EXISTS sessions (
             id              TEXT PRIMARY KEY,
             summary         TEXT,
             message_count   INTEGER DEFAULT 0,
             started_at      TEXT NOT NULL DEFAULT (datetime('now')),
             ended_at        TEXT
+        );
+
+        -- Background Monitors — cheap intermittent checks
+        CREATE TABLE IF NOT EXISTS monitors (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id             INTEGER NOT NULL,
+            prompt              TEXT NOT NULL,
+            interval_minutes    INTEGER NOT NULL DEFAULT 15,
+            last_run            TEXT NOT NULL DEFAULT (datetime('now', '-1 year')),
+            created_at          TEXT NOT NULL DEFAULT (datetime('now'))
         );
     `);
 
