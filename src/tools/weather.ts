@@ -3,6 +3,7 @@ import { log } from "../utils/logger.js";
 
 /**
  * Weather tool using wttr.in — free, no API key, supports any location.
+ * Uses the compact text format for speed and reliability.
  */
 export const getWeather: Tool = {
     name: "get_weather",
@@ -25,67 +26,45 @@ export const getWeather: Tool = {
         log.info("Getting weather", { location });
 
         try {
-            // wttr.in returns concise weather in JSON format
-            const url = `https://wttr.in/${encodeURIComponent(location)}?format=j1`;
+            // Use the compact text format — much faster than JSON
+            const format = "%l:+%C+%t+(feels+%f)+💧%h+💨%w+UV:%u";
+            const url = `https://wttr.in/${encodeURIComponent(location)}?format=${encodeURIComponent(format)}`;
             const response = await fetch(url, {
-                headers: { "User-Agent": "GravityClaw/1.0" },
-                signal: AbortSignal.timeout(10000),
+                headers: {
+                    "User-Agent": "curl/8.0",
+                    "Accept": "text/plain",
+                },
+                signal: AbortSignal.timeout(15000),
             });
 
             if (!response.ok) {
                 return `Weather lookup failed: ${response.status}`;
             }
 
-            const data = (await response.json()) as {
-                current_condition: Array<{
-                    temp_C: string;
-                    FeelsLikeC: string;
-                    humidity: string;
-                    weatherDesc: Array<{ value: string }>;
-                    windspeedKmph: string;
-                    winddir16Point: string;
-                    uvIndex: string;
-                }>;
-                nearest_area: Array<{
-                    areaName: Array<{ value: string }>;
-                    country: Array<{ value: string }>;
-                }>;
-                weather: Array<{
-                    date: string;
-                    maxtempC: string;
-                    mintempC: string;
-                    hourly: Array<{
-                        time: string;
-                        tempC: string;
-                        weatherDesc: Array<{ value: string }>;
-                        chanceofrain: string;
-                    }>;
-                }>;
-            };
+            const text = (await response.text()).trim();
 
-            const current = data.current_condition[0];
-            const area = data.nearest_area[0];
-            const forecast = data.weather;
-
-            if (!current || !area) {
+            if (text.includes("Unknown location") || text.includes("Sorry")) {
                 return `Could not find weather data for "${location}".`;
             }
 
-            const areaName = area.areaName[0]?.value ?? location;
-            const country = area.country[0]?.value ?? "";
-
-            let result = `🌤️ **Weather for ${areaName}, ${country}**\n\n`;
-            result += `**Now:** ${current.weatherDesc[0]?.value ?? "Unknown"}\n`;
-            result += `🌡️ ${current.temp_C}°C (feels like ${current.FeelsLikeC}°C)\n`;
-            result += `💧 Humidity: ${current.humidity}%\n`;
-            result += `💨 Wind: ${current.windspeedKmph} km/h ${current.winddir16Point}\n`;
-            result += `☀️ UV Index: ${current.uvIndex}\n`;
-
-            if (forecast && forecast.length > 0) {
-                result += `\n**Forecast:**\n`;
-                for (const day of forecast.slice(0, 3)) {
-                    result += `📅 ${day.date}: ${day.mintempC}°C – ${day.maxtempC}°C\n`;
+            // Also fetch 3-day forecast (compact format)
+            const forecastUrl = `https://wttr.in/${encodeURIComponent(location)}?format=3`;
+            let forecast = "";
+            try {
+                const fRes = await fetch(forecastUrl, {
+                    headers: { "User-Agent": "curl/8.0", "Accept": "text/plain" },
+                    signal: AbortSignal.timeout(10000),
+                });
+                if (fRes.ok) {
+                    forecast = (await fRes.text()).trim();
                 }
+            } catch {
+                // Forecast is optional
+            }
+
+            let result = `🌤️ **Weather:**\n${text}`;
+            if (forecast) {
+                result += `\n\n**Forecast:**\n${forecast}`;
             }
 
             return result;
