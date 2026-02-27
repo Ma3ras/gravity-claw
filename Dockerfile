@@ -13,6 +13,7 @@ RUN npm ci
 # Copy source and compile TypeScript
 COPY tsconfig.json ./
 COPY src/ ./src/
+COPY skills/ ./skills/
 RUN npx tsc
 
 # ── Stage 2: Run ──────────────────────────────────────────────
@@ -29,6 +30,7 @@ RUN npm ci --omit=dev
 
 # Copy compiled JS from builder
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/skills ./skills
 
 # Create data directory for SQLite
 RUN mkdir -p data

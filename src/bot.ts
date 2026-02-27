@@ -14,7 +14,7 @@ import { transcribeAudio, isVoiceEnabled } from "./voice/transcribe.js";
  * - Long-polling only: never exposes a web server or port
  * - No message content logged from unauthorized users
  */
-export function createBot(toolRegistry: ToolRegistry, memory?: MemoryManager): Bot {
+export function createBot(toolRegistry: ToolRegistry, memory?: MemoryManager, skillsPrompt?: string): Bot {
     const bot = new Bot(config.telegramBotToken);
 
     // ── Security middleware: user ID whitelist ───────────────────────
@@ -52,7 +52,7 @@ export function createBot(toolRegistry: ToolRegistry, memory?: MemoryManager): B
         const sessionId = `${chatId}-${today}`;
 
         log.info("Received message", { userId, length: text.length, sessionId });
-        await handleAgentReply(ctx, text, toolRegistry, memory, sessionId, userId);
+        await handleAgentReply(ctx, text, toolRegistry, memory, sessionId, userId, skillsPrompt);
     });
 
     // ── Handle voice messages ───────────────────────────────────────
@@ -101,7 +101,7 @@ export function createBot(toolRegistry: ToolRegistry, memory?: MemoryManager): B
 
             // Process through the agent like a text message
             log.info("Processing transcribed voice", { textLength: transcribedText.length });
-            await handleAgentReply(ctx, transcribedText, toolRegistry, memory, sessionId, userId);
+            await handleAgentReply(ctx, transcribedText, toolRegistry, memory, sessionId, userId, skillsPrompt);
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             log.error("Voice processing error", { error: message, userId });
@@ -126,12 +126,13 @@ async function handleAgentReply(
     toolRegistry: ToolRegistry,
     memory: MemoryManager | undefined,
     sessionId: string,
-    userId: number
+    userId: number,
+    skillsPrompt?: string
 ): Promise<void> {
     await ctx.replyWithChatAction("typing");
 
     try {
-        const reply = await runAgent(text, toolRegistry, memory, sessionId);
+        const reply = await runAgent(text, toolRegistry, memory, sessionId, skillsPrompt);
 
         // Telegram has a 4096 char limit per message — split if needed
         if (reply.length <= 4096) {

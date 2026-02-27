@@ -14,6 +14,7 @@ export interface Config {
     embeddingApiKey: string;
     tursoDbUrl: string;
     tursoAuthToken: string;
+    discordBotToken: string | null;
 }
 
 function requireEnv(name: string): string {
@@ -60,4 +61,5 @@ export const config: Config = {
     embeddingApiKey: process.env["EMBEDDING_API_KEY"] || "",
     tursoDbUrl: process.env["TURSO_DATABASE_URL"] || "file:./data/memory.db",
     tursoAuthToken: process.env["TURSO_AUTH_TOKEN"] || "",
+    discordBotToken: process.env["DISCORD_BOT_TOKEN"] || null,
 };

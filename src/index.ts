@@ -10,6 +10,8 @@ import { getWeather } from "./tools/weather.js";
 import { initDatabase, createTables } from "./memory/db.js";
 import { MemoryManager } from "./memory/manager.js";
 import { createBot } from "./bot.js";
+import { createDiscordBot } from "./channels/discord.js";
+import { loadSkills, skillsToPrompt } from "./skills/loader.js";
 
 async function main() {
     log.info("Starting Gravity Claw...", {
@@ -43,13 +45,22 @@ async function main() {
         tools: toolRegistry.getAll().map((t) => t.name),
     });
 
+    // ── Load skills ─────────────────────────────────────────────
+    const skills = await loadSkills("./skills");
+    const skillsPrompt = skillsToPrompt(skills);
+    log.info(`Loaded ${skills.length} skill(s)`, { skills: skills.map(s => s.name) });
+
     // ── Start Telegram bot ────────────────────────────────────────
-    const bot = createBot(toolRegistry, memory);
+    const bot = createBot(toolRegistry, memory, skillsPrompt);
+
+    // ── Start Discord bot (optional) ─────────────────────────────
+    const discordBot = createDiscordBot(toolRegistry, memory, skillsPrompt);
 
     // Graceful shutdown
     const shutdown = async (signal: string) => {
         log.info(`Received ${signal}, shutting down...`);
         bot.stop();
+        if (discordBot) discordBot.destroy();
         db.close();
         process.exit(0);
     };
@@ -71,6 +82,7 @@ async function main() {
             console.log(`  ║  Bot: @${botInfo.username.padEnd(33)}║`);
             console.log(`  ║  Model: ${config.llmModel.padEnd(32)}║`);
             console.log(`  ║  Tools: ${toolRegistry.getAll().length.toString().padEnd(32)}║`);
+            console.log(`  ║  Skills: ${skills.length.toString().padEnd(31)}║`);
             console.log(`  ║  Memory: ${stats.facts} facts, ${stats.messages} msgs`.padEnd(42) + "║");
             console.log(`  ║  Allowed users: ${config.allowedUserIds.size.toString().padEnd(24)}║`);
             console.log("  ║                                          ║");

@@ -16,7 +16,7 @@ Key behaviors:
 - Use memory_save to store important facts the user tells you (name, preferences, projects, etc.)
 - Be honest about what you can and cannot do
 - Keep responses concise unless the user asks for detail
-- You run on Telegram — format messages appropriately (Telegram supports Markdown)
+- You run on Telegram and Discord — format messages appropriately (both support Markdown)
 
 You have persistent memory. You can remember things across conversations. Important things to save:
 - User's name, preferences, and personal details they share
@@ -43,7 +43,8 @@ export async function runAgent(
     userMessage: string,
     toolRegistry: ToolRegistry,
     memory?: MemoryManager,
-    sessionId?: string
+    sessionId?: string,
+    skillsPrompt?: string
 ): Promise<string> {
     const tools = toolsToOpenAIFormat(toolRegistry.getAll());
     const sid = sessionId ?? "default";
@@ -78,7 +79,7 @@ export async function runAgent(
     }
 
     // ── Step 3: Build message array ──────────────────────────────────
-    const systemContent = SYSTEM_PROMPT + memoryContext;
+    const systemContent = SYSTEM_PROMPT + (skillsPrompt ?? "") + memoryContext;
 
     const messages: ChatMessage[] = [
         { role: "system", content: systemContent },
