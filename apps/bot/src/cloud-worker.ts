@@ -377,11 +377,7 @@ async function startWorker() {
             log.info(`[CloudWorker] Successfully completed and pushed task #${id}`);
 
             // Send completion message directly to Telegram
-            const completeMessage = `✅ *Aufgabe #${id} erledigt!*\n\n` +
-                `Dein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code auf GitHub gepusht. ` +
-                `Falls dies eine Web-App betrifft, sollte die Live-Seite in wenigen Sekunden unter [Gravity Claw Dev](https://gravity-claw-dev.netlify.app) erreichbar sein.`;
-
-            await sendTelegramNotification(completeMessage);
+            await sendTelegramNotification(`✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀`);
 
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
