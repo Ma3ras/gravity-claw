@@ -7,14 +7,13 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 # Set working directory
 WORKDIR /app
 
-# Copy the monorepo package definitions
-COPY package.json package-lock.json* ./
+# Copy the monorepo package definitions (omitting package-lock.json to force native Linux resolution)
+COPY package.json ./
 COPY apps/bot/package.json ./apps/bot/
 COPY apps/web/package.json ./apps/web/
 
 # Install dependencies and force install native modules for linux x64
 RUN npm install
-RUN npm rebuild --platform=linux --arch=x64
 
 # Copy the rest of the application code
 COPY . .
