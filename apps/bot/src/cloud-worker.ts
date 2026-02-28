@@ -194,6 +194,60 @@ ${prompt}
     }
 }
 
+async function verifyCodexAuth(): Promise<void> {
+    log.info("[CloudWorker] Verifying Codex CLI authentication...");
+    try {
+        await execPromise(`codex exec "echo test"`, { timeout: 15000 });
+        log.info("[CloudWorker] Codex is already authenticated.");
+        return;
+    } catch (e: any) {
+        log.info("[CloudWorker] Codex is NOT authenticated (or token expired). Starting device auth flow...");
+    }
+
+    return new Promise<void>((resolve, reject) => {
+        const child = spawn("codex", ["login", "--device-auth"], {
+            shell: process.platform === 'win32'
+        });
+
+        let codeSent = false;
+        let stdoutBuffer = "";
+
+        child.stdout.on('data', async (data) => {
+            const chunk = data.toString();
+            stdoutBuffer += chunk;
+            process.stdout.write(chunk);
+
+            const match = stdoutBuffer.match(/Enter this one-time code:\s+([A-Z0-9-]{8,15})/i);
+            if (match && !codeSent) {
+                codeSent = true;
+                const code = match[1].trim();
+                log.info(`[CloudWorker] Captured Device Auth Code: ${code}`);
+                await sendTelegramNotification(`🚨 **Cloud Worker Authentication Required!** 🚨\n\nThe AI server needs to log into Codex to run tasks. Please authenticate it:\n\n1. Open: https://openai.com/device\n2. Enter this code: \`${code}\`\n\nThe Worker will pause and wait here until you approve it in your browser.`);
+            }
+        });
+
+        child.stderr.on('data', (data) => {
+            process.stderr.write(data);
+        });
+
+        child.on('close', async (code) => {
+            if (code === 0) {
+                log.info("[CloudWorker] Codex Device Auth successful!");
+                await sendTelegramNotification(`✅ **Cloud Worker Successfully Authenticated!**\n\nResuming task polling...`);
+                resolve();
+            } else {
+                log.error(`[CloudWorker] Codex Device Auth failed with code ${code}`);
+                await sendTelegramNotification(`❌ **Cloud Worker Auth Failed!**\n\nPlease restart the server and try again.`);
+                reject(new Error(`Codex login failed with code ${code}`));
+            }
+        });
+
+        child.on('error', (err) => {
+            reject(err);
+        });
+    });
+}
+
 async function startWorker() {
     log.info("[CloudWorker] Starting Autonomous Cloud Worker Node...");
     // Inject Codex CLI config directly into the container's home directory if provided
@@ -215,6 +269,10 @@ async function startWorker() {
     }
 
     const db = initDatabase();
+
+    // Ensure we are authenticated before polling
+    await verifyCodexAuth();
+
     // Poll every 15 seconds
     const intervalMs = 15000;
 
