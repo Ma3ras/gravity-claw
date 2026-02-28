@@ -16,11 +16,11 @@ export function createAntigravityTaskTool(db: Client): Tool {
             properties: {
                 project_path: {
                     type: "string",
-                    description: "The absolute path of the project on the user's PC (e.g., 'd:\\ai\\gravity-claw' or 'd:\\ai\\ark-bot'). If you aren't sure, assume 'd:\\ai\\gravity-claw'.",
+                    description: "The absolute path of the project on the user's PC (e.g., 'd:\\ai\\gravity-claw' or 'd:\\ai\\ark-bot'). If you aren't sure, assume 'd:\\ai\\gravity-claw'. Note that gravity-claw is a monorepo: 'd:\\ai\\gravity-claw\\apps\\bot' is the Node.js backend, and 'd:\\ai\\gravity-claw\\apps\\web' is the Vite React frontend. Adjust this path depending on what app the task is for.",
                 },
                 prompt: {
                     type: "string",
-                    description: "A highly detailed, comprehensive prompt/specification for Antigravity explaining exactly what needs to be changed, added, or fixed.",
+                    description: "A comprehensive prompt/specification for Codex (your senior AI peer) explaining what needs to be changed, added, or fixed. Codex has full autonomous access to the user's workspace, so you do NOT need to provide file contents or write the code yourself. Just tell Codex what the goal is and any specific architecture rules to follow.",
                 },
             },
             required: ["project_path", "prompt"],

@@ -10,7 +10,8 @@
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true
+        "emitDecoratorMetadata": true,
+        "jsx": "react-jsx"
     },
     "include": [
         "src/**/*"
