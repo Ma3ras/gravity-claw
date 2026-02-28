@@ -5,6 +5,7 @@ import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import fs, { rmSync } from "fs";
 import path from "path";
+import os from "os";
 
 const execPromise = promisify(exec);
 
@@ -194,7 +195,25 @@ ${prompt}
 }
 
 async function startWorker() {
-    log.info("Starting Autonomous Cloud Worker Node...");
+    log.info("[CloudWorker] Starting Autonomous Cloud Worker Node...");
+    // Inject Codex CLI config directly into the container's home directory if provided
+    const codexDir = path.join(os.homedir(), ".codex");
+    if (!fs.existsSync(codexDir)) {
+        fs.mkdirSync(codexDir, { recursive: true });
+    }
+
+    if (process.env.CODEX_AUTH_JSON) {
+        fs.writeFileSync(path.join(codexDir, "auth.json"), process.env.CODEX_AUTH_JSON);
+        log.info("[CloudWorker] Injected Codex auth.json from environment.");
+    } else {
+        log.warn("[CloudWorker] CODEX_AUTH_JSON is missing! Codex execution will fail.");
+    }
+
+    if (process.env.CODEX_CONFIG_TOML) {
+        fs.writeFileSync(path.join(codexDir, "config.toml"), process.env.CODEX_CONFIG_TOML);
+        log.info("[CloudWorker] Injected Codex config.toml from environment.");
+    }
+
     const db = initDatabase();
     // Poll every 15 seconds
     const intervalMs = 15000;
