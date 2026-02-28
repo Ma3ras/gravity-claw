@@ -156,6 +156,28 @@ async function startWorker() {
 
             log.info(`[CloudWorker] Successfully completed and pushed task #${id}`);
 
+            // Send completion message directly to Telegram
+            const userId = Array.from(config.allowedUserIds)[0];
+            if (userId) {
+                const message = `✅ *Aufgabe #${id} erledigt!*\n\n` +
+                    `Dein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code auf GitHub gepusht. ` +
+                    `Die Live-Seite sollte in wenigen Sekunden unter [Gravity Claw Dev](https://gravity-claw-dev.netlify.app) erreichbar sein.`;
+
+                try {
+                    await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            chat_id: userId,
+                            text: message,
+                            parse_mode: "Markdown"
+                        })
+                    });
+                } catch (e) {
+                    log.error("[CloudWorker] Failed to send Telegram notification", { error: String(e) });
+                }
+            }
+
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
             log.error("[CloudWorker] Execution error", { error: error instanceof Error ? error.message : String(error) });
