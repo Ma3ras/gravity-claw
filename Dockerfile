@@ -1,8 +1,8 @@
-# Base image: Node.js 22 on Alpine Linux
-FROM node:22-alpine
+# Base image: Node.js 22 on Debian Slim (fixes libsql musl errors)
+FROM node:22-slim
 
 # Install Git (required for cloning and pushing)
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
