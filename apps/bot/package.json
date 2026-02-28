@@ -11,7 +11,8 @@
     "cloud-worker": "tsx src/cloud-worker.ts",
     "local-ai": "tsx src/local-ai-worker.ts",
     "pull-tasks": "tsx scripts/pull-tasks.ts",
-    "complete-task": "tsx scripts/complete-task.ts"
+    "complete-task": "tsx scripts/complete-task.ts",
+    "start-all": "tsx src/index.ts & tsx src/cloud-worker.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.17.0",
