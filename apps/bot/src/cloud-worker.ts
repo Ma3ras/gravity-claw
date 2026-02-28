@@ -126,22 +126,18 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
     return cloneDir;
 }
 
-async function syncWorkspaceBack(message: string, cloneDir: string): Promise<void> {
+async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boolean> {
     log.info(`[CloudWorker] Syncing changes back to GitHub...`);
     try {
         await execPromise(`git add .`, { cwd: cloneDir });
 
-        // We might not have any changes, so don't fail if commit is empty
-        try {
-            await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
-        } catch (e: any) {
-            if (e.message && e.message.includes("nothing to commit")) {
-                log.info(`[CloudWorker] No changes to commit.`);
-                return;
-            } else {
-                throw e;
-            }
+        const { stdout } = await execPromise(`git status --porcelain`, { cwd: cloneDir });
+        if (!stdout.trim()) {
+            log.info(`[CloudWorker] No changes to commit. Working tree is clean.`);
+            return false;
         }
+
+        await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
 
         // Extremely important: If GitHub auto-initialized with a README, we must pull it first before pushing to avoid conflicts
         try {
@@ -158,6 +154,7 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<voi
             execPromise(`git push origin main`, { cwd: cloneDir })
         );
         log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
+        return true;
     } catch (error: any) {
         log.error("[CloudWorker] Git Sync Error", { error: error.message, stderr: error.stderr });
         throw error;
@@ -413,9 +410,10 @@ async function startWorker() {
             await runCodexAgent(prompt, relativePath, cloneDir);
 
             // 3. Push back to GitHub
-            await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
+            const changesPushed = await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
             // 4. Deploy to Netlify (if applicable)
+            // Even if no changes were pushed to github this run, the user might have provided missing credentials now, so we can still attempt a deploy
             const deployedUrl = await deployToNetlify(cloneDir);
 
             await db.execute({
@@ -423,14 +421,21 @@ async function startWorker() {
                 args: [id]
             });
 
-            log.info(`[CloudWorker] Successfully completed and pushed task #${id}`);
+            log.info(`[CloudWorker] Successfully completed task #${id}`);
 
             // Send completion message directly to Telegram
-            const completeMessage = deployedUrl
-                ? `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀\n\n🌐 **Live Vorschau:** [Gravity Claw Dev](${deployedUrl})`
-                : `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀`;
+            let text = `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
+            if (changesPushed) {
+                text += ` Der Code wurde vollständig auf GitHub gepusht! 🚀`;
+            } else {
+                text += ` Es waren keine Code-Änderungen an diesem Repository nötig.`;
+            }
 
-            await sendTelegramNotification(completeMessage);
+            if (deployedUrl) {
+                text += `\n\n🌐 **Live Vorschau:** [Gravity Claw Dev](${deployedUrl})`;
+            }
+
+            await sendTelegramNotification(text);
 
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
