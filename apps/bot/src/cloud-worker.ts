@@ -62,7 +62,17 @@ async function runCodexAgent(prompt: string, relativeProjectPath: string): Promi
     log.info(`[CloudWorker] Sending task to Codex CLI...`);
 
     try {
-        const safePrompt = prompt.replace(/"/g, '\\"');
+        const strictInstructions = `
+⚠️ CRITICAL SYSTEM INSTRUCTIONS FOR CODEX ⚠️
+1. MONOREPO STRUCTURE: This is a monorepo. The Node.js backend is in 'apps/bot'. The React Vite frontend is in 'apps/web'.
+2. COMPONENT RULES: All React UI components MUST be created inside 'apps/web/src/components' or 'apps/web/src'. Do NOT create React components in 'apps/bot'.
+3. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. You MUST run 'npm run build' or 'npx tsc' in the directory you modified.
+4. SELF-CORRECTION: If your build or verification commands fail with errors, you MUST read the errors, fix your code, and run the build again until it succeeds. Do NOT return or finish until the code builds without errors.
+
+USER TASK:
+${prompt}
+`;
+        const safePrompt = strictInstructions.replace(/"/g, '\\"');
         const command = `codex exec --sandbox danger-full-access "${safePrompt}"`;
 
         log.debug(`[CloudWorker] Executing: ${command.substring(0, 100)}...`);
