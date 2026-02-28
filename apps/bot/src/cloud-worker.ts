@@ -319,7 +319,10 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         const distDir = fs.existsSync(path.join(frontendDir, "dist")) ? "dist" : (fs.existsSync(path.join(frontendDir, "build")) ? "build" : ".");
 
         log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
-        await execPromise(`npx netlify deploy --prod --dir=${distDir} --site=${process.env.NETLIFY_SITE_ID} --auth=${process.env.NETLIFY_AUTH_TOKEN}`, { cwd: frontendDir });
+        await execPromise(`npx netlify deploy --prod --dir=${distDir}`, {
+            cwd: frontendDir,
+            env: { ...process.env }
+        });
 
         log.info("[CloudWorker] Netlify deployment successful.");
         return "https://gravity-claw-dev.netlify.app";
