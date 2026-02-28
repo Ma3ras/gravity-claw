@@ -16,7 +16,9 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
         throw new Error("GITHUB_PAT environment variable is required for the cloud worker.");
     }
 
-    const authRepoUrl = `https://Maxik92:${GITHUB_PAT}@${repoUrl}`;
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
+    const ownerAuth = match ? match[1] : "Ma3ras";
+    const authRepoUrl = `https://${ownerAuth}:${GITHUB_PAT}@${repoUrl}`;
 
     if (fs.existsSync(cloneDir)) {
         log.info(`[CloudWorker] Updating existing workspace via git pull...`);
@@ -159,7 +161,7 @@ async function startWorker() {
             const id = Number(row.id);
             const rawProjectPath = row.project_path as string;
             const prompt = row.prompt as string;
-            const repoUrl = (row.repo_url as string) || "github.com/Maxik92/gravity-claw.git";
+            const repoUrl = (row.repo_url as string) || "github.com/Ma3ras/gravity-claw.git";
             const cloneDir = path.resolve(process.env.CLONE_DIR || `./cloud-workspace-${id}`);
 
             log.info(`[CloudWorker] Picked up task #${id} for repo ${repoUrl}`);
