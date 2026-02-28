@@ -41,7 +41,9 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
 
     if (fs.existsSync(cloneDir)) {
         log.info(`[CloudWorker] Updating existing workspace via git pull...`);
-        await execPromise(`git checkout master && git pull origin master`, { cwd: cloneDir });
+        await execPromise(`git checkout main && git pull origin main`, { cwd: cloneDir }).catch(() =>
+            execPromise(`git checkout master && git pull origin master`, { cwd: cloneDir })
+        );
     } else {
         // Auto-create repo on GitHub if it doesn't exist yet
         const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
