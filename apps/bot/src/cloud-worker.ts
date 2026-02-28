@@ -141,10 +141,7 @@ async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneD
 USER TASK:
 ${prompt}
 `;
-        const safePrompt = strictInstructions.replace(/"/g, '\\"');
-        const command = `codex exec --sandbox danger-full-access "${safePrompt}"`;
-
-        log.debug(`[CloudWorker] Executing: ${command.substring(0, 100)}...`);
+        log.debug(`[CloudWorker] Executing Codex CLI...`);
 
         // Codex MUST run in the cloned directory so it edits the cloned files, not the worker's own files
         const targetDir = path.join(cloneDir, relativeProjectPath);
@@ -156,8 +153,8 @@ ${prompt}
         const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
 
         await new Promise<void>((resolve, reject) => {
-            const child = spawn(command, {
-                shell: true,
+            const child = spawn("codex", ["exec", "--sandbox", "danger-full-access", strictInstructions], {
+                shell: process.platform === 'win32',
                 cwd: cwd,
                 env: { ...process.env }
             });
@@ -217,7 +214,7 @@ async function verifyCodexAuth(): Promise<void> {
             stdoutBuffer += chunk;
             process.stdout.write(chunk);
 
-            const match = stdoutBuffer.match(/Enter this one-time code:\s+([A-Z0-9-]{8,15})/i);
+            const match = stdoutBuffer.match(/([A-Z0-9]{4}-[A-Z0-9]{4,5})/i);
             if (match && !codeSent) {
                 codeSent = true;
                 const code = match[1].trim();
