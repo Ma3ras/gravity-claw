@@ -287,6 +287,52 @@ async function verifyCodexAuth(): Promise<void> {
     });
 }
 
+async function deployToNetlify(cloneDir: string): Promise<string | null> {
+    if (!process.env.NETLIFY_AUTH_TOKEN || !process.env.NETLIFY_SITE_ID) {
+        log.warn("[CloudWorker] Netlify credentials missing. Skipping deployment.");
+        return null;
+    }
+
+    try {
+        let frontendDir = cloneDir;
+        let pjsonPath = path.join(cloneDir, "package.json");
+
+        if (!fs.existsSync(pjsonPath) && fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
+            frontendDir = path.join(cloneDir, "apps/web");
+            pjsonPath = path.join(frontendDir, "package.json");
+        }
+
+        if (!fs.existsSync(pjsonPath)) {
+            log.info("[CloudWorker] No package.json found. Skipping Netlify deployment.");
+            return null;
+        }
+
+        const pjson = JSON.parse(fs.readFileSync(pjsonPath, "utf-8"));
+        if (!pjson.scripts || !pjson.scripts.build) {
+            log.info("[CloudWorker] No build script found in package.json. Skipping Netlify deployment.");
+            return null;
+        }
+
+        log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
+        await sendTelegramNotification(`🏗️ **Baue Frontend für Netlify...**`);
+
+        await execPromise("npm install", { cwd: frontendDir });
+        await execPromise("npm run build", { cwd: frontendDir });
+
+        const distDir = fs.existsSync(path.join(frontendDir, "dist")) ? "dist" : (fs.existsSync(path.join(frontendDir, "build")) ? "build" : ".");
+
+        log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
+        await execPromise(`npx netlify deploy --prod --dir=${distDir} --site=${process.env.NETLIFY_SITE_ID} --auth=${process.env.NETLIFY_AUTH_TOKEN}`, { cwd: frontendDir });
+
+        log.info("[CloudWorker] Netlify deployment successful.");
+        return "https://gravity-claw-dev.netlify.app";
+    } catch (e: any) {
+        log.error("[CloudWorker] Netlify deployment failed", { error: String(e) });
+        await sendTelegramNotification(`⚠️ **Netlify Deployment fehlgeschlagen:**\n\n\`\`\`\n${e.message}\n\`\`\``);
+        return null;
+    }
+}
+
 async function startWorker() {
     log.info("[CloudWorker] Starting Autonomous Cloud Worker Node...");
     // Inject Codex CLI config directly into the container's home directory if provided
@@ -369,6 +415,9 @@ async function startWorker() {
             // 3. Push back to GitHub
             await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
+            // 4. Deploy to Netlify (if applicable)
+            const deployedUrl = await deployToNetlify(cloneDir);
+
             await db.execute({
                 sql: `UPDATE antigravity_tasks SET status = 'completed' WHERE id = ?`,
                 args: [id]
@@ -377,7 +426,11 @@ async function startWorker() {
             log.info(`[CloudWorker] Successfully completed and pushed task #${id}`);
 
             // Send completion message directly to Telegram
-            await sendTelegramNotification(`✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀`);
+            const completeMessage = deployedUrl
+                ? `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀\n\n🌐 **Live Vorschau:** [Gravity Claw Dev](${deployedUrl})`
+                : `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code vollständig auf GitHub gepusht! 🚀`;
+
+            await sendTelegramNotification(completeMessage);
 
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
