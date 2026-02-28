@@ -1,0 +1,251 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
+:root {
+  --todo-bg-0: #06080f;
+  --todo-bg-1: #0e1424;
+  --todo-panel: rgba(15, 22, 38, 0.86);
+  --todo-line: rgba(132, 154, 214, 0.28);
+  --todo-text: #e8eefc;
+  --todo-muted: #a9b8de;
+  --todo-primary: #64d8ff;
+  --todo-accent: #6f7bf8;
+  --todo-danger: #ff6d8f;
+}
+
+.todo-page {
+  position: relative;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background:
+    radial-gradient(circle at 10% 15%, rgba(111, 123, 248, 0.22), transparent 36%),
+    radial-gradient(circle at 88% 85%, rgba(100, 216, 255, 0.2), transparent 35%),
+    linear-gradient(150deg, var(--todo-bg-0), var(--todo-bg-1));
+  overflow: hidden;
+}
+
+.todo-glow {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(64px);
+  opacity: 0.32;
+  pointer-events: none;
+}
+
+.todo-glow--one {
+  width: 18rem;
+  height: 18rem;
+  top: -4rem;
+  right: -5rem;
+  background: var(--todo-primary);
+}
+
+.todo-glow--two {
+  width: 14rem;
+  height: 14rem;
+  bottom: -3rem;
+  left: -2rem;
+  background: var(--todo-accent);
+}
+
+.todo-shell {
+  position: relative;
+  z-index: 1;
+  width: min(94vw, 44rem);
+  border: 1px solid var(--todo-line);
+  border-radius: 1.1rem;
+  padding: 1.35rem;
+  background: linear-gradient(155deg, rgba(22, 33, 56, 0.88), var(--todo-panel));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.42), inset 0 0 0.7rem rgba(108, 132, 193, 0.2);
+}
+
+.todo-header {
+  margin-bottom: 1rem;
+}
+
+.todo-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font: 700 0.69rem/1.2 'Manrope', sans-serif;
+  color: var(--todo-muted);
+}
+
+.todo-header h1 {
+  margin: 0.28rem 0 0.4rem;
+  font: 800 1.85rem/1 'Manrope', sans-serif;
+  letter-spacing: 0.02em;
+  color: var(--todo-text);
+}
+
+.todo-stats {
+  margin: 0;
+  font: 500 0.95rem/1.3 'Plus Jakarta Sans', sans-serif;
+  color: var(--todo-muted);
+}
+
+.todo-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.66rem;
+  margin-bottom: 0.85rem;
+}
+
+.todo-input {
+  width: 100%;
+  border: 1px solid rgba(124, 150, 214, 0.35);
+  border-radius: 0.75rem;
+  background: rgba(8, 13, 24, 0.7);
+  color: var(--todo-text);
+  padding: 0.8rem 0.92rem;
+  font: 500 0.95rem/1.3 'Plus Jakarta Sans', sans-serif;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.todo-input::placeholder {
+  color: rgba(176, 192, 229, 0.62);
+}
+
+.todo-input:focus {
+  outline: none;
+  border-color: rgba(126, 208, 255, 0.85);
+  box-shadow: 0 0 0 0.15rem rgba(100, 216, 255, 0.2);
+}
+
+.todo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.58rem;
+}
+
+.todo-empty {
+  border: 1px dashed rgba(132, 154, 214, 0.4);
+  border-radius: 0.8rem;
+  padding: 0.95rem 0.9rem;
+  color: var(--todo-muted);
+  font: 500 0.92rem/1.35 'Plus Jakarta Sans', sans-serif;
+  text-align: center;
+}
+
+.todo-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.72rem;
+  border: 1px solid rgba(132, 154, 214, 0.2);
+  border-radius: 0.8rem;
+  padding: 0.66rem 0.72rem;
+  background: linear-gradient(150deg, rgba(21, 31, 52, 0.75), rgba(16, 24, 42, 0.86));
+}
+
+.todo-item--done {
+  border-color: rgba(100, 216, 255, 0.38);
+}
+
+.todo-checkbox-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.todo-checkbox-wrap input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.todo-checkmark {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(157, 180, 231, 0.7);
+  border-radius: 0.32rem;
+  background: rgba(5, 9, 18, 0.82);
+  transition: all 170ms ease;
+}
+
+.todo-checkbox-wrap input:checked + .todo-checkmark {
+  border-color: rgba(100, 216, 255, 0.95);
+  background: linear-gradient(140deg, rgba(100, 216, 255, 0.88), rgba(111, 123, 248, 0.9));
+  box-shadow: 0 0 0.65rem rgba(100, 216, 255, 0.55);
+}
+
+.todo-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--todo-text);
+  font: 500 0.95rem/1.35 'Plus Jakarta Sans', sans-serif;
+  transition: opacity 170ms ease, text-decoration-color 170ms ease;
+}
+
+.todo-item--done .todo-text {
+  color: rgba(182, 198, 235, 0.88);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.1rem;
+  text-decoration-color: rgba(123, 213, 255, 0.8);
+}
+
+.todo-btn {
+  border: 1px solid transparent;
+  border-radius: 0.68rem;
+  padding: 0.56rem 0.8rem;
+  font: 700 0.78rem/1 'Manrope', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.todo-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.todo-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.todo-btn--add {
+  color: #03111f;
+  background: linear-gradient(130deg, var(--todo-primary), #98f0ff);
+  box-shadow: 0 0.5rem 1rem rgba(100, 216, 255, 0.24);
+}
+
+.todo-btn--delete {
+  color: #ffe8ee;
+  border-color: rgba(255, 109, 143, 0.55);
+  background: rgba(58, 17, 28, 0.86);
+}
+
+.todo-btn--delete:hover {
+  box-shadow: 0 0.4rem 0.8rem rgba(255, 109, 143, 0.22);
+}
+
+.todo-btn--clear {
+  margin-top: 0.88rem;
+  width: 100%;
+  color: #edf3ff;
+  border-color: rgba(138, 159, 217, 0.46);
+  background: linear-gradient(130deg, rgba(39, 54, 88, 0.9), rgba(30, 42, 72, 0.9));
+}
+
+@media (max-width: 520px) {
+  .todo-shell {
+    padding: 1rem;
+  }
+
+  .todo-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .todo-btn--add {
+    width: 100%;
+  }
+}
