@@ -28,4 +28,4 @@ RUN npm install -g @openai/codex
 # ENV CODEX_API_KEY=...
 
 # Start the Cloud Worker (which polls Turso, clones via Git, and runs Codex)
-CMD ["npm", "run", "start-all", "--workspace=apps/bot"]
+CMD ["npm", "run", "cloud-worker", "--workspace=apps/bot"]
