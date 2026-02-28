@@ -39,7 +39,7 @@ export function createAntigravityTaskTool(db: Client): Tool {
 
                 log.info("Created Antigravity task", { taskId: Number(result.lastInsertRowid), projectPath });
 
-                return `Ticket #${result.lastInsertRowid} successfully created for Antigravity! Tell the user they can pull this task by typing '/gravity_sync' in their VS Code Antigravity chat.`;
+                return `Ticket #${result.lastInsertRowid} successfully created for Antigravity! Tell the user that the autonomous Cloud Worker has received the task and is now working on it automatically in the background.`;
             } catch (error) {
                 const msg = error instanceof Error ? error.message : String(error);
                 log.error("Failed to create Antigravity task", { error: msg });
