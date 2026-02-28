@@ -40,11 +40,21 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
     const authRepoUrl = `https://${ownerAuth}:${GITHUB_PAT}@${repoUrl}`;
 
     if (fs.existsSync(cloneDir)) {
-        log.info(`[CloudWorker] Updating existing workspace via git pull...`);
-        await execPromise(`git checkout main && git pull origin main`, { cwd: cloneDir }).catch(() =>
-            execPromise(`git checkout master && git pull origin master`, { cwd: cloneDir })
-        );
-    } else {
+        // Check if it's actually a valid git repo (might be a broken partial clone from a crash)
+        if (!fs.existsSync(path.join(cloneDir, ".git"))) {
+            log.warn(`[CloudWorker] Found broken workspace directory without .git, removing it...`);
+            fs.rmSync(cloneDir, { recursive: true, force: true });
+        } else {
+            log.info(`[CloudWorker] Updating existing workspace via git pull...`);
+            await execPromise(`git checkout main && git pull origin main`, { cwd: cloneDir }).catch(() =>
+                execPromise(`git checkout master && git pull origin master`, { cwd: cloneDir })
+            ).catch(e => {
+                log.warn(`[CloudWorker] Failed to pull existing branches, this might be a completely empty repo: ${e.message}`);
+            });
+        }
+    }
+
+    if (!fs.existsSync(cloneDir)) {
         // Auto-create repo on GitHub if it doesn't exist yet
         const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
         if (match) {
@@ -74,6 +84,18 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
     // Identify who made the change
     await execPromise(`git config user.name "Gravity Claw AI Worker"`, { cwd: cloneDir });
     await execPromise(`git config user.email "bot@gravity-claw.local"`, { cwd: cloneDir });
+
+    // If repo is completely empty (no branches), create an initial commit so we have a 'main' branch to work on 
+    try {
+        await execPromise(`git log`, { cwd: cloneDir });
+    } catch {
+        log.info(`[CloudWorker] Repository appears completely empty. Creating initial commit on main branch...`);
+        await execPromise(`git checkout -b main`, { cwd: cloneDir }).catch(() => { });
+        fs.writeFileSync(path.join(cloneDir, "README.md"), "# Initialized by Gravity Claw Cloud Worker");
+        await execPromise(`git add README.md`, { cwd: cloneDir });
+        await execPromise(`git commit -m "chore: Initialize repository"`, { cwd: cloneDir });
+        await execPromise(`git push -u origin main`, { cwd: cloneDir }).catch(e => log.warn("Failed to push initial commit", { error: String(e) }));
+    }
 
     return cloneDir;
 }
