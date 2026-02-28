@@ -18,6 +18,7 @@ import { createScheduleMonitorTool } from "./tools/schedule-monitor.js";
 import { startMonitorLoop } from "./monitor.js";
 import { createRemoteTools } from "./tools/remote-fs.js";
 import { createAntigravityTaskTool } from "./tools/create-antigravity-task.js";
+import { createCheckTaskStatusTool } from "./tools/index.js";
 
 async function main() {
     log.info("Starting Gravity Claw...", {
@@ -53,6 +54,7 @@ async function main() {
         toolRegistry.register(tool);
     }
     toolRegistry.register(createAntigravityTaskTool(db));
+    toolRegistry.register(createCheckTaskStatusTool(db));
 
     // ── Load MCP Tool Servers ────────────────────────────────────
     const mcpBridge = new McpBridge();

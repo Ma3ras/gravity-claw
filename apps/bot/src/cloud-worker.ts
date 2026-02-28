@@ -159,6 +159,7 @@ async function startWorker() {
     const intervalMs = 15000;
 
     setInterval(async () => {
+        let currentTaskId: number | null = null;
         try {
             console.log("[Trace] Polling Turso...");
             const result = await db.execute(`
@@ -185,6 +186,8 @@ async function startWorker() {
 
             log.info(`[CloudWorker] Picked up task #${id} for repo ${repoUrl}`);
 
+            currentTaskId = id;
+
             await db.execute({
                 sql: `UPDATE antigravity_tasks SET status = 'in_progress' WHERE id = ?`,
                 args: [id]
@@ -203,7 +206,7 @@ async function startWorker() {
             }
 
             // 2. Run Codex
-            await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern.`);
+            await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern (ETA: ca. 5 bis 15 Minuten).`);
             await runCodexAgent(prompt, relativePath, cloneDir);
 
             // 3. Push back to GitHub
@@ -226,6 +229,19 @@ async function startWorker() {
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
             log.error("[CloudWorker] Execution error", { error: error instanceof Error ? error.message : String(error) });
+
+            // Mark task as failed if an ID is available
+            if (currentTaskId !== null) {
+                try {
+                    await db.execute({
+                        sql: `UPDATE antigravity_tasks SET status = 'failed' WHERE id = ?`,
+                        args: [currentTaskId]
+                    });
+                    await sendTelegramNotification(`❌ **Fehler bei Aufgabe #${currentTaskId}**\n\nDer Cloud Worker ist während der Bearbeitung abgestürzt oder hat einen Fehler festgestellt:\n\`\`\`\n${error instanceof Error ? error.message : String(error).substring(0, 500)}\n\`\`\``);
+                } catch (dbErr) {
+                    console.error("Failed to update status to failed", dbErr);
+                }
+            }
         }
     }, intervalMs);
 }
