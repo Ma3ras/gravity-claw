@@ -20,21 +20,21 @@ export function createAntigravityTaskTool(db: Client): Tool {
                 },
                 repo_url: {
                     type: "string",
-                    description: "Optional. The GitHub repository URL to clone and modify (e.g. 'github.com/Ma3ras/new-project.git'). CRITICAL: If the user does not specify a repo, you MUST attempt to infer the repo from the most recent conversation context (e.g. if they just asked you to build a feature for 'test_projekt4', reuse that repo URL). Only omit this if you are absolutely sure they want to modify the gravity-claw bot itself.",
+                    description: "The GitHub repository URL to clone and modify (e.g. 'github.com/Ma3ras/new-project.git' or 'github.com/user/test_projekt4'). CRITICAL: If the user does not specify a repo in their current message, you MUST strictly infer the repo from the most recent conversation context. Do not default to the bot's own repo unless explicitly asked to modify the bot.",
                 },
                 prompt: {
                     type: "string",
                     description: "A comprehensive prompt/specification for Codex (your senior AI peer) explaining what needs to be changed, added, or fixed. Codex has full autonomous access to the user's workspace and will automatically verify its own code, so just tell it what the goal is.",
                 },
             },
-            required: ["project_path", "prompt"],
+            required: ["project_path", "prompt", "repo_url"],
         },
         execute: async (input: Record<string, unknown>) => {
             const projectPath = input.project_path as string;
             const prompt = input.prompt as string;
-            const repoUrl = (input.repo_url as string) || null;
+            const repoUrl = input.repo_url as string;
 
-            if (!projectPath || !prompt) return "Error: project_path and prompt are required.";
+            if (!projectPath || !prompt || !repoUrl) return "Error: project_path, prompt, and repo_url are required.";
 
             try {
                 const result = await db.execute({
