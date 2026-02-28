@@ -10,40 +10,63 @@ const execPromise = promisify(exec);
 
 // Cloud-specific configurations
 const GITHUB_PAT = process.env.GITHUB_PAT;
-const REPO_URL = "github.com/Maxik92/gravity-claw.git";
-const CLONE_DIR = path.resolve(process.env.CLONE_DIR || "./cloud-workspace");
 
-async function setupWorkspace(): Promise<string> {
+async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string> {
     if (!GITHUB_PAT) {
         throw new Error("GITHUB_PAT environment variable is required for the cloud worker.");
     }
 
-    const authRepoUrl = `https://Maxik92:${GITHUB_PAT}@${REPO_URL}`;
+    const authRepoUrl = `https://Maxik92:${GITHUB_PAT}@${repoUrl}`;
 
-    if (fs.existsSync(CLONE_DIR)) {
+    if (fs.existsSync(cloneDir)) {
         log.info(`[CloudWorker] Updating existing workspace via git pull...`);
-        await execPromise(`git checkout master && git pull origin master`, { cwd: CLONE_DIR });
+        await execPromise(`git checkout master && git pull origin master`, { cwd: cloneDir });
     } else {
-        log.info(`[CloudWorker] Cloning workspace to ${CLONE_DIR}...`);
-        await execPromise(`git clone ${authRepoUrl} ${CLONE_DIR}`);
+        // Auto-create repo on GitHub if it doesn't exist yet
+        const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
+        if (match) {
+            const [, owner, repo] = match;
+            const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+                headers: { Authorization: `token ${GITHUB_PAT}` }
+            });
+            if (res.status === 404) {
+                log.info(`[CloudWorker] Repository ${owner}/${repo} not found. Creating it...`);
+                await fetch(`https://api.github.com/user/repos`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `token ${GITHUB_PAT}`,
+                        "Content-Type": "application/json",
+                        "Accept": "application/vnd.github.v3+json"
+                    },
+                    body: JSON.stringify({ name: repo, private: true, auto_init: true })
+                });
+                await new Promise(r => setTimeout(r, 2000)); // Wait for GitHub creation propagation
+            }
+        }
+
+        log.info(`[CloudWorker] Cloning workspace to ${cloneDir}...`);
+        await execPromise(`git clone ${authRepoUrl} ${cloneDir}`);
     }
 
     // Identify who made the change
-    await execPromise(`git config user.name "Gravity Claw AI Worker"`, { cwd: CLONE_DIR });
-    await execPromise(`git config user.email "bot@gravity-claw.local"`, { cwd: CLONE_DIR });
+    await execPromise(`git config user.name "Gravity Claw AI Worker"`, { cwd: cloneDir });
+    await execPromise(`git config user.email "bot@gravity-claw.local"`, { cwd: cloneDir });
 
-    return CLONE_DIR;
+    return cloneDir;
 }
 
-async function syncWorkspaceBack(message: string): Promise<void> {
+async function syncWorkspaceBack(message: string, cloneDir: string): Promise<void> {
     log.info(`[CloudWorker] Syncing changes back to GitHub...`);
     try {
-        await execPromise(`git add .`, { cwd: CLONE_DIR });
+        await execPromise(`git add .`, { cwd: cloneDir });
 
         // We might not have any changes, so don't fail if commit is empty
         try {
-            await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: CLONE_DIR });
-            await execPromise(`git push origin master`, { cwd: CLONE_DIR });
+            await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
+            // Try pushing to master, fallback to main if it fails
+            await execPromise(`git push origin master`, { cwd: cloneDir }).catch(() =>
+                execPromise(`git push origin main`, { cwd: cloneDir })
+            );
             log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         } catch (e: any) {
             if (e.message && e.message.includes("nothing to commit")) {
@@ -58,7 +81,7 @@ async function syncWorkspaceBack(message: string): Promise<void> {
     }
 }
 
-async function runCodexAgent(prompt: string, relativeProjectPath: string): Promise<void> {
+async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<void> {
     log.info(`[CloudWorker] Sending task to Codex CLI...`);
 
     try {
@@ -78,13 +101,13 @@ ${prompt}
         log.debug(`[CloudWorker] Executing: ${command.substring(0, 100)}...`);
 
         // Codex MUST run in the cloned directory so it edits the cloned files, not the worker's own files
-        const targetDir = path.join(CLONE_DIR, relativeProjectPath);
+        const targetDir = path.join(cloneDir, relativeProjectPath);
 
         if (!fs.existsSync(targetDir)) {
             log.warn(`[CloudWorker] Target directory ${targetDir} does not exist. Running at repo root.`);
         }
 
-        const cwd = fs.existsSync(targetDir) ? targetDir : CLONE_DIR;
+        const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
 
         const { stdout, stderr } = await execPromise(command, {
             cwd: cwd,
@@ -118,7 +141,7 @@ async function startWorker() {
         try {
             console.log("[Trace] Polling Turso...");
             const result = await db.execute(`
-                SELECT id, project_path, prompt 
+                SELECT id, project_path, prompt, repo_url 
                 FROM antigravity_tasks 
                 WHERE status = 'pending' 
                 ORDER BY created_at ASC 
@@ -136,8 +159,10 @@ async function startWorker() {
             const id = Number(row.id);
             const rawProjectPath = row.project_path as string;
             const prompt = row.prompt as string;
+            const repoUrl = (row.repo_url as string) || "github.com/Maxik92/gravity-claw.git";
+            const cloneDir = path.resolve(process.env.CLONE_DIR || `./cloud-workspace-${id}`);
 
-            log.info(`[CloudWorker] Picked up task #${id}`);
+            log.info(`[CloudWorker] Picked up task #${id} for repo ${repoUrl}`);
 
             await db.execute({
                 sql: `UPDATE antigravity_tasks SET status = 'in_progress' WHERE id = ?`,
@@ -145,19 +170,21 @@ async function startWorker() {
             });
 
             // 1. Sync from GitHub
-            await setupWorkspace();
+            await setupWorkspace(repoUrl, cloneDir);
 
             // The rawProjectPath from Turso is likely an absolute path from the user's PC 
-            // e.g., "d:\ai\gravity-claw\apps\bot". We need to map this to our cloned workspace.
+            // We only map gravity-claw specific apps paths if this is actually gravity-claw.
             let relativePath = "";
-            if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) relativePath = "apps/bot";
-            else if (rawProjectPath.includes("apps/web") || rawProjectPath.includes("apps\\web")) relativePath = "apps/web";
+            if (repoUrl.includes("gravity-claw")) {
+                if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) relativePath = "apps/bot";
+                else if (rawProjectPath.includes("apps/web") || rawProjectPath.includes("apps\\web")) relativePath = "apps/web";
+            }
 
             // 2. Run Codex
-            await runCodexAgent(prompt, relativePath);
+            await runCodexAgent(prompt, relativePath, cloneDir);
 
             // 3. Push back to GitHub
-            await syncWorkspaceBack(`Codex auto-completed task #${id}`);
+            await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
             await db.execute({
                 sql: `UPDATE antigravity_tasks SET status = 'completed' WHERE id = ?`,
