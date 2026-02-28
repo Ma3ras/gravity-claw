@@ -12,8 +12,9 @@ COPY package.json package-lock.json* ./
 COPY apps/bot/package.json ./apps/bot/
 COPY apps/web/package.json ./apps/web/
 
-# Install dependencies (this will set up npm workspaces)
+# Install dependencies and force install native modules for linux x64
 RUN npm install
+RUN npm rebuild --platform=linux --arch=x64
 
 # Copy the rest of the application code
 COPY . .
