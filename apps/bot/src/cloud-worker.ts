@@ -209,13 +209,18 @@ async function verifyCodexAuth(): Promise<void> {
         let codeSent = false;
         let stdoutBuffer = "";
 
+        const stripAnsi = (str: string) => str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+
         child.stdout.on('data', async (data) => {
             const chunk = data.toString();
             stdoutBuffer += chunk;
             process.stdout.write(chunk);
 
-            const match = stdoutBuffer.match(/\n\s+([A-Z0-9]{4}-[A-Z0-9]{5})/i);
-            if (match && !codeSent && !chunk.includes("command-line")) {
+            const cleanBuffer = stripAnsi(stdoutBuffer);
+            const isCodeSection = cleanBuffer.includes("Enter this");
+            const match = cleanBuffer.match(/([A-Z0-9]{4}-[A-Z0-9]{5})/i);
+
+            if (match && isCodeSection && !codeSent && !cleanBuffer.includes("command-line")) {
                 codeSent = true;
                 const code = match[1].trim().toUpperCase();
                 log.info(`[CloudWorker] Captured Device Auth Code: ${code}`);
