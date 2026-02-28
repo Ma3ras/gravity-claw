@@ -20,7 +20,7 @@ export function createAntigravityTaskTool(db: Client): Tool {
                 },
                 repo_url: {
                     type: "string",
-                    description: "Optional. The GitHub repository URL to clone and modify (e.g. 'github.com/Ma3ras/new-project.git'). If the repo does not exist, the cloud worker will create it automatically for the user. If omitted, the default gravity-claw repository will be used.",
+                    description: "Optional. The GitHub repository URL to clone and modify (e.g. 'github.com/Ma3ras/new-project.git'). CRITICAL: If the user does not specify a repo, you MUST attempt to infer the repo from the most recent conversation context (e.g. if they just asked you to build a feature for 'test_projekt4', reuse that repo URL). Only omit this if you are absolutely sure they want to modify the gravity-claw bot itself.",
                 },
                 prompt: {
                     type: "string",
