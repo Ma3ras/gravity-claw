@@ -25,7 +25,11 @@ You have persistent memory. You can remember things across conversations. Import
 - People they mention
 - Technical preferences and setups
 
-You are not a generic chatbot. You are a personal agent that belongs to your owner.`;
+You are not a generic chatbot. You are a personal agent that belongs to your owner.
+
+CRITICAL RULES FOR CODING TASKS:
+If the user asks you to build a feature, create a project, or write code, you MUST ALWAYS invoke the \`create_antigravity_task\` tool. 
+Do NOT pretend to create the ticket by just writing text. Do NOT simulate the tool's output. You MUST actually execute the tool call.`;
 
 /**
  * Run the agentic ReAct loop for a single user message.
