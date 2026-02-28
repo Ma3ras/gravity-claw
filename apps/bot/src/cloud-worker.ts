@@ -99,10 +99,12 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
     try {
         await execPromise(`git log`, { cwd: cloneDir });
     } catch {
-        log.info(`[CloudWorker] Repository appears completely empty. Creating initial commit on main branch...`);
+        log.info(`[CloudWorker] Repository appears completely empty and without remote branch. Creating initial commit on main branch...`);
         await execPromise(`git checkout -b main`, { cwd: cloneDir }).catch(() => { });
-        fs.writeFileSync(path.join(cloneDir, "README.md"), "# Initialized by Gravity Claw Cloud Worker");
-        await execPromise(`git add README.md`, { cwd: cloneDir });
+        if (!fs.existsSync(path.join(cloneDir, "README.md"))) {
+            fs.writeFileSync(path.join(cloneDir, "README.md"), "# Initialized by Gravity Claw Cloud Worker");
+        }
+        await execPromise(`git add .`, { cwd: cloneDir });
         await execPromise(`git commit -m "chore: Initialize repository"`, { cwd: cloneDir });
         await execPromise(`git push -u origin main`, { cwd: cloneDir }).catch(e => log.warn("Failed to push initial commit", { error: String(e) }));
     }
@@ -118,18 +120,30 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<voi
         // We might not have any changes, so don't fail if commit is empty
         try {
             await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
-            // Try pushing to master, fallback to main if it fails
-            await execPromise(`git push origin master`, { cwd: cloneDir }).catch(() =>
-                execPromise(`git push origin main`, { cwd: cloneDir })
-            );
-            log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         } catch (e: any) {
             if (e.message && e.message.includes("nothing to commit")) {
                 log.info(`[CloudWorker] No changes to commit.`);
+                return;
             } else {
                 throw e;
             }
         }
+
+        // Extremely important: If GitHub auto-initialized with a README, we must pull it first before pushing to avoid conflicts
+        try {
+            log.info(`[CloudWorker] Rebasing from remote just in case...`);
+            await execPromise(`git pull origin main --rebase`, { cwd: cloneDir }).catch(() =>
+                execPromise(`git pull origin master --rebase`, { cwd: cloneDir })
+            );
+        } catch (e) {
+            log.warn(`[CloudWorker] Rebase failed, probably a completely empty repo. Skipping rebase.`);
+        }
+
+        // Try pushing to master, fallback to main if it fails
+        await execPromise(`git push origin master`, { cwd: cloneDir }).catch(() =>
+            execPromise(`git push origin main`, { cwd: cloneDir })
+        );
+        log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
     } catch (error: any) {
         log.error("[CloudWorker] Git Sync Error", { error: error.message, stderr: error.stderr });
         throw error;
