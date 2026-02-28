@@ -57,7 +57,21 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
         // Auto-create repo on GitHub if it doesn't exist yet
         const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
         if (match) {
-            const [, owner, repo] = match;
+            let [, owner, repo] = match;
+            repo = repo.replace(/\.git$/, '');
+
+            // AI often hallucinates generic usernames. If we see one, replace it with the authenticated user's real name.
+            const genericNames = ["user", "username", "your-username", "yourusername", "testuser"];
+            if (genericNames.includes(owner.toLowerCase())) {
+                const userRes = await fetch("https://api.github.com/user", { headers: { Authorization: `token ${GITHUB_PAT}` } });
+                if (userRes.ok) {
+                    const userData = await userRes.json() as any;
+                    log.info(`[CloudWorker] Interpolating hallucinated username '${owner}' to real user '${userData.login}'`);
+                    owner = userData.login;
+                    finalRepoUrl = `github.com/${owner}/${repo}.git`;
+                }
+            }
+
             const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
                 headers: { Authorization: `token ${GITHUB_PAT}` }
             });
