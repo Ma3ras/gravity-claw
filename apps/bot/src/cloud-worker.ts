@@ -36,9 +36,7 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
         throw new Error("GITHUB_PAT environment variable is required for the cloud worker.");
     }
 
-    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/.]+)/);
-    const ownerAuth = match ? match[1] : "Ma3ras";
-    const authRepoUrl = `https://${ownerAuth}:${GITHUB_PAT}@${repoUrl}`;
+    let finalRepoUrl = repoUrl;
 
     if (fs.existsSync(cloneDir)) {
         // Check if it's actually a valid git repo (might be a broken partial clone from a crash)
@@ -65,7 +63,7 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
             });
             if (res.status === 404) {
                 log.info(`[CloudWorker] Repository ${owner}/${repo} not found. Creating it...`);
-                await fetch(`https://api.github.com/user/repos`, {
+                const createRes = await fetch(`https://api.github.com/user/repos`, {
                     method: 'POST',
                     headers: {
                         Authorization: `token ${GITHUB_PAT}`,
@@ -74,10 +72,21 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
                     },
                     body: JSON.stringify({ name: repo, private: true, auto_init: true })
                 });
+
+                if (createRes.ok) {
+                    const data = await createRes.json() as any;
+                    finalRepoUrl = data.clone_url.replace("https://", "");
+                    log.info(`[CloudWorker] Created repository successfully as ${data.full_name}, using clone URL: ${finalRepoUrl}`);
+                } else {
+                    const errText = await createRes.text();
+                    log.warn(`[CloudWorker] Failed to create repository: ${createRes.status} ${errText}`);
+                }
+
                 await new Promise(r => setTimeout(r, 2000)); // Wait for GitHub creation propagation
             }
         }
 
+        const authRepoUrl = `https://${GITHUB_PAT}@${finalRepoUrl}`;
         log.info(`[CloudWorker] Cloning workspace to ${cloneDir}...`);
         await execPromise(`git clone ${authRepoUrl} ${cloneDir}`);
     }
