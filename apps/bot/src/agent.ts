@@ -176,6 +176,27 @@ export async function runAgent(
         // If the LLM didn't request any tool calls, we're done
         if (response.toolCalls.length === 0) {
             const reply = response.content ?? "(No response generated)";
+
+            // --- STRICT HALLUCINATION GUARD ---
+            // If the LLM claims to have created a task but we know it didn't call the tool
+            // (The actual tool always returns "Ticket #XYZ successfully created", which the LLM would see in the loop)
+            const isProbablyHallucinatingTask = (
+                (/Task\s*#\d+/i.test(reply) || /Aufgabe\s*#\d+/i.test(reply) || /erstellt/i.test(reply) || /Antigravity/i.test(reply)) &&
+                !messages.some(m => m.role === "tool" && m.content.includes("Ticket #")) &&
+                (/test_projekt/i.test(userMessage) || /design/i.test(userMessage) || /repo/i.test(userMessage) || /füge/i.test(userMessage) || /add/i.test(userMessage))
+            );
+
+            if (isProbablyHallucinatingTask) {
+                log.warn("Intercepted hallucinated task confirmation. Forcing LLM to retry with tool call.");
+                messages.push({ role: "assistant", content: reply });
+                messages.push({
+                    role: "system",
+                    content: "SYSTEM ERROR: You just told the user you created a task, but YOU DID NOT CALL THE `create_antigravity_task` TOOL! You hallucinated the success message. You must actually invoke the tool to create the task. Try again and USE THE TOOL."
+                });
+                continue; // Force another iteration
+            }
+            // --- END GUARD ---
+
             log.info("Agent completed", { iterations, replyLength: reply.length });
 
             // ── Step 7: Log reply + background fact extraction ───────
