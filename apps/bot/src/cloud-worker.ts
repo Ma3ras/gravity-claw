@@ -214,12 +214,12 @@ async function verifyCodexAuth(): Promise<void> {
             stdoutBuffer += chunk;
             process.stdout.write(chunk);
 
-            const match = stdoutBuffer.match(/([A-Z0-9]{4}-[A-Z0-9]{4,5})/i);
-            if (match && !codeSent) {
+            const match = stdoutBuffer.match(/\n\s+([A-Z0-9]{4}-[A-Z0-9]{5})/i);
+            if (match && !codeSent && !chunk.includes("command-line")) {
                 codeSent = true;
-                const code = match[1].trim();
+                const code = match[1].trim().toUpperCase();
                 log.info(`[CloudWorker] Captured Device Auth Code: ${code}`);
-                await sendTelegramNotification(`🚨 **Cloud Worker Authentication Required!** 🚨\n\nThe AI server needs to log into Codex to run tasks. Please authenticate it:\n\n1. Open: https://openai.com/device\n2. Enter this code: \`${code}\`\n\nThe Worker will pause and wait here until you approve it in your browser.`);
+                await sendTelegramNotification(`🚨 **Cloud Worker Authentication Required!** 🚨\n\nThe AI server needs to log into Codex to run tasks. Please authenticate it:\n\n1. Open: https://auth.openai.com/codex/device\n2. Enter this code: \`${code}\`\n\nThe Worker will pause and wait here until you approve it in your browser.`);
             }
         });
 
