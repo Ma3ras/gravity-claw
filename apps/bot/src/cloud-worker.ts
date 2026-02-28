@@ -1,7 +1,7 @@
 import { config } from "./config.js";
 import { log } from "./utils/logger.js";
 import { initDatabase } from "./memory/db.js";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 import fs, { rmSync } from "fs";
 import path from "path";
@@ -130,17 +130,34 @@ ${prompt}
 
         const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
 
-        const { stdout, stderr } = await execPromise(command, {
-            cwd: cwd,
-            maxBuffer: 1024 * 1024 * 10,
-            env: {
-                ...process.env, // Pass NETLIFY_AUTH_TOKEN and CODEX_API_KEY
-            }
-        });
+        await new Promise<void>((resolve, reject) => {
+            const child = spawn(command, {
+                shell: true,
+                cwd: cwd,
+                env: { ...process.env }
+            });
 
-        log.info(`[CloudWorker] Codex execution finished.`);
-        if (stdout) log.info(`[CloudWorker] Codex Output:\n${stdout.substring(0, 500)}...`);
-        if (stderr) log.warn(`[CloudWorker] Codex STDERR:\n${stderr.substring(0, 500)}...`);
+            child.stdout.on('data', (data) => {
+                process.stdout.write(data);
+            });
+
+            child.stderr.on('data', (data) => {
+                process.stderr.write(data);
+            });
+
+            child.on('close', (code) => {
+                if (code === 0) {
+                    log.info(`[CloudWorker] Codex execution finished successfully.`);
+                    resolve();
+                } else {
+                    reject(new Error(`Codex process exited with code ${code}`));
+                }
+            });
+
+            child.on('error', (err) => {
+                reject(err);
+            });
+        });
 
     } catch (error: any) {
         log.error("[CloudWorker] Codex CLI Error", {
