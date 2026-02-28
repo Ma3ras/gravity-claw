@@ -11,6 +11,25 @@ const execPromise = promisify(exec);
 // Cloud-specific configurations
 const GITHUB_PAT = process.env.GITHUB_PAT;
 
+async function sendTelegramNotification(message: string) {
+    const userId = Array.from(config.allowedUserIds)[0];
+    if (!userId || !config.telegramBotToken) return;
+
+    try {
+        await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                chat_id: userId,
+                text: message,
+                parse_mode: "Markdown"
+            })
+        });
+    } catch (e) {
+        log.error("[CloudWorker] Failed to send Telegram notification", { error: String(e) });
+    }
+}
+
 async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string> {
     if (!GITHUB_PAT) {
         throw new Error("GITHUB_PAT environment variable is required for the cloud worker.");
@@ -172,6 +191,7 @@ async function startWorker() {
             });
 
             // 1. Sync from GitHub
+            await sendTelegramNotification(`🔄 **Aufgabe #${id} in Bearbeitung!**\n\nDer Cloud Worker bereitet den Workspace für das Repository \`${repoUrl}\` vor...`);
             await setupWorkspace(repoUrl, cloneDir);
 
             // The rawProjectPath from Turso is likely an absolute path from the user's PC 
@@ -183,6 +203,7 @@ async function startWorker() {
             }
 
             // 2. Run Codex
+            await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern.`);
             await runCodexAgent(prompt, relativePath, cloneDir);
 
             // 3. Push back to GitHub
@@ -196,26 +217,11 @@ async function startWorker() {
             log.info(`[CloudWorker] Successfully completed and pushed task #${id}`);
 
             // Send completion message directly to Telegram
-            const userId = Array.from(config.allowedUserIds)[0];
-            if (userId) {
-                const message = `✅ *Aufgabe #${id} erledigt!*\n\n` +
-                    `Dein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code auf GitHub gepusht. ` +
-                    `Die Live-Seite sollte in wenigen Sekunden unter [Gravity Claw Dev](https://gravity-claw-dev.netlify.app) erreichbar sein.`;
+            const completeMessage = `✅ *Aufgabe #${id} erledigt!*\n\n` +
+                `Dein autonomer Cloud Worker hat die Aufgabe bearbeitet und den Code auf GitHub gepusht. ` +
+                `Falls dies eine Web-App betrifft, sollte die Live-Seite in wenigen Sekunden unter [Gravity Claw Dev](https://gravity-claw-dev.netlify.app) erreichbar sein.`;
 
-                try {
-                    await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            chat_id: userId,
-                            text: message,
-                            parse_mode: "Markdown"
-                        })
-                    });
-                } catch (e) {
-                    log.error("[CloudWorker] Failed to send Telegram notification", { error: String(e) });
-                }
-            }
+            await sendTelegramNotification(completeMessage);
 
         } catch (error) {
             console.error("CRITICAL ERROR IN POLLING LOOP:", error);
