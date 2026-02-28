@@ -218,9 +218,9 @@ async function verifyCodexAuth(): Promise<void> {
 
             const cleanBuffer = stripAnsi(stdoutBuffer);
             const isCodeSection = cleanBuffer.includes("Enter this");
-            const match = cleanBuffer.match(/([A-Z0-9]{4}-[A-Z0-9]{5})/i);
+            const match = cleanBuffer.match(/([A-Z0-9]{4}-[A-Z0-9]{5})/);
 
-            if (match && isCodeSection && !codeSent && !cleanBuffer.includes("command-line")) {
+            if (match && isCodeSection && !codeSent) {
                 codeSent = true;
                 const code = match[1].trim().toUpperCase();
                 log.info(`[CloudWorker] Captured Device Auth Code: ${code}`);
