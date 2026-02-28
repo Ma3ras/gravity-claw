@@ -18,9 +18,8 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
-# Install Codex CLI globally so the worker can spawn it
-RUN npm install -g @openai/codex
-
+# Install Codex CLI and Netlify CLI globally so the worker can spawn them
+RUN npm install -g @openai/codex netlify-cli
 # Set environment variables (these should be provided at runtime via Railway/Render)
 # ENV TELEGRAM_BOT_TOKEN=...
 # ENV TURSO_DATABASE_URL=...
