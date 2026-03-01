@@ -400,12 +400,16 @@ async function startWorker() {
             await sendTelegramNotification(`🔄 **Aufgabe #${id} in Bearbeitung!**\n\nDer Cloud Worker bereitet den Workspace für das Repository \`${repoUrl}\` vor...`);
             await setupWorkspace(repoUrl, cloneDir);
 
-            // The rawProjectPath from Turso is likely an absolute path from the user's PC 
-            // We only map gravity-claw specific apps paths if this is actually gravity-claw.
+            // Determine the relative path for Codex to operate in.
+            // If the repository has a monorepo structure with apps/web, target that specifically.
             let relativePath = "";
-            if (repoUrl.includes("gravity-claw")) {
-                if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) relativePath = "apps/bot";
-                else if (rawProjectPath.includes("apps/web") || rawProjectPath.includes("apps\\web")) relativePath = "apps/web";
+            if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
+                relativePath = "apps/web";
+            } else if (fs.existsSync(path.join(cloneDir, "apps/bot/package.json")) && repoUrl.includes("gravity-claw")) {
+                // Legacy fallback: if modifying gravity-claw backend specifically
+                if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) {
+                    relativePath = "apps/bot";
+                }
             }
 
             // 2. Run Codex

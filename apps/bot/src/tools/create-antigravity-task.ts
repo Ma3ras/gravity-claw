@@ -16,7 +16,7 @@ export function createAntigravityTaskTool(db: Client): Tool {
             properties: {
                 project_path: {
                     type: "string",
-                    description: "The absolute path of the project on the user's PC (e.g., 'd:\\ai\\gravity-claw' or 'd:\\ai\\ark-bot'). If you aren't sure, assume 'd:\\ai\\gravity-claw'. Note that gravity-claw is a monorepo, however Codex is aware of this automatically.",
+                    description: "The absolute path of the project on the user's PC. CRITICAL: Construct this dynamically based on the project name (e.g., if the user wants to modify 'test_projekt4', the path MUST be 'd:\\ai\\test_projekt4'). NEVER default to 'd:\\ai\\gravity-claw' unless the user is explicitly requesting changes to the gravity-claw Telegram bot.",
                 },
                 repo_url: {
                     type: "string",
