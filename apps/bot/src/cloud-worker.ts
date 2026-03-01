@@ -120,7 +120,14 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
         }
         await execPromise(`git add .`, { cwd: cloneDir });
         await execPromise(`git commit -m "chore: Initialize repository"`, { cwd: cloneDir });
-        await execPromise(`git push -u origin main`, { cwd: cloneDir }).catch(e => log.warn("Failed to push initial commit", { error: String(e) }));
+
+        // Push and set upstream tracking to main branch immediately
+        try {
+            await execPromise(`git push -u origin main`, { cwd: cloneDir });
+            log.info(`[CloudWorker] Pushed initial commit to origin main`);
+        } catch (e) {
+            log.warn("[CloudWorker] Failed to push initial commit", { error: String(e) });
+        }
     }
 
     return cloneDir;
@@ -165,26 +172,26 @@ async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneD
     log.info(`[CloudWorker] Sending task to Codex CLI...`);
 
     try {
+        // Codex MUST run in the cloned directory so it edits the cloned files, not the worker's own files
+        const targetDir = path.join(cloneDir, relativeProjectPath);
+        if (!fs.existsSync(targetDir)) {
+            log.warn(`[CloudWorker] Target directory ${targetDir} does not exist. Running at repo root.`);
+        }
+        const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
+
         const strictInstructions = `
 ⚠️ CRITICAL SYSTEM INSTRUCTIONS FOR CODEX ⚠️
-1. MONOREPO STRUCTURE: This is a monorepo. The Node.js backend is in 'apps/bot'. The React Vite frontend is in 'apps/web'.
-2. COMPONENT RULES: All React UI components MUST be created inside 'apps/web/src/components' or 'apps/web/src'. Do NOT create React components in 'apps/bot'.
-3. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. You MUST run 'npm run build' or 'npx tsc' in the directory you modified.
-4. SELF-CORRECTION: If your build or verification commands fail with errors, you MUST read the errors, fix your code, and run the build again until it succeeds. Do NOT return or finish until the code builds without errors.
+1. YOUR EXACT WORKSPACE PATH IS: ${cwd}
+2. You MUST operate strictly within this directory. You are FORBIDDEN from accessing, searching, or modifying any files in other 'cloud-workspace-*' directories. Previous directories contain unrelated old projects.
+3. MONOREPO STRUCTURE: If this is a monorepo, the Node.js backend is in 'apps/bot' and the React Vite frontend is in 'apps/web'. If this is a flat repo (no apps folder), just work in the root.
+4. COMPONENT RULES: All React UI components MUST be created inside 'apps/web/src/components' or 'src/components'. Do NOT create React components in the backend bot folder.
+5. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. You MUST run 'npm run build' or 'npx tsc' in the directory you modified.
+6. SELF-CORRECTION: If your build or verification commands fail with errors, you MUST read the errors, fix your code, and run the build again until it succeeds. Do NOT return or finish until the code builds without errors.
 
 USER TASK:
 ${prompt}
 `;
-        log.debug(`[CloudWorker] Executing Codex CLI...`);
-
-        // Codex MUST run in the cloned directory so it edits the cloned files, not the worker's own files
-        const targetDir = path.join(cloneDir, relativeProjectPath);
-
-        if (!fs.existsSync(targetDir)) {
-            log.warn(`[CloudWorker] Target directory ${targetDir} does not exist. Running at repo root.`);
-        }
-
-        const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
+        log.debug(`[CloudWorker] Executing Codex CLI in ${cwd}...`);
 
         await new Promise<void>((resolve, reject) => {
             const child = spawn("codex", ["exec", "--sandbox", "danger-full-access", strictInstructions], {
