@@ -156,10 +156,13 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boo
             log.warn(`[CloudWorker] Rebase failed, probably a completely empty repo. Skipping rebase.`);
         }
 
-        // Try pushing to master, fallback to main if it fails
-        await execPromise(`git push origin master`, { cwd: cloneDir }).catch(() =>
-            execPromise(`git push origin main`, { cwd: cloneDir })
-        );
+        // Try pushing to main (modern default), fallback to master
+        try {
+            await execPromise(`git push origin main`, { cwd: cloneDir });
+        } catch (e1) {
+            log.warn(`[CloudWorker] Failed to push to main, trying master...`);
+            await execPromise(`git push origin master`, { cwd: cloneDir });
+        }
         log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         return true;
     } catch (error: any) {
