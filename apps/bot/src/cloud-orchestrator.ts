@@ -45,6 +45,11 @@ DO NOT build a "task orchestration system" or "agent team platform". Build what 
 5. List dependencies for backend and frontend.
 6. Create basic directory structure and config files (package.json, tsconfig.json).
 7. Do NOT write implementation code. Only plan, document, and scaffold.
+
+=== IMPORTANT: NO AUTH BY DEFAULT ===
+Do NOT include user authentication (login, register, JWT, bcrypt) in your architecture UNLESS the user EXPLICITLY asks for accounts or login.
+The app should work immediately without requiring account creation. If a chess game, let users play directly. If a dashboard, show data directly.
+If you need to identify users, use anonymous session IDs, not full auth systems.
 === END ===`,
                 model: "claude-3-opus"
             },
