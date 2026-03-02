@@ -136,6 +136,8 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
 async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boolean> {
     log.info(`[CloudWorker] Syncing changes back to GitHub...`);
     try {
+        // Ensure .agent_workspace is explicitly added even if sometimes ignored by default git rules
+        try { await execPromise(`git add .agent_workspace`, { cwd: cloneDir }); } catch (e) { }
         await execPromise(`git add .`, { cwd: cloneDir });
 
         const { stdout } = await execPromise(`git status --porcelain`, { cwd: cloneDir });
