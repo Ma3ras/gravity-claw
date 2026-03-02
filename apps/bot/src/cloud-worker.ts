@@ -459,6 +459,55 @@ async function startWorker() {
 
             log.info(`[CloudWorker] Successfully completed task #${id}`);
 
+            // ── AUTO-CHAIN: Read stage.json and spawn follow-up tasks ──
+            if (resultData) {
+                try {
+                    const stageJson = JSON.parse(resultData);
+                    const subtasks = stageJson.subtasks || [];
+                    const pendingTasks = subtasks.filter((t: any) => t.status === 'pending');
+
+                    if (pendingTasks.length > 0) {
+                        log.info(`[CloudWorker] Found ${pendingTasks.length} pending subtasks in stage.json. Auto-chaining...`);
+
+                        for (const sub of pendingTasks) {
+                            const role = sub.assignedRole || sub.title || 'Agent';
+                            const requirements = sub.requirements ? sub.requirements.join('\n- ') : sub.description || sub.title;
+
+                            const chainPrompt = `
+You are a ${role} agent in a multi-agent team.
+
+The Lead Architect has completed the planning phase. Here is the full project state:
+${resultData}
+
+YOUR SPECIFIC TASK:
+Title: ${sub.title}
+Requirements:
+- ${requirements}
+
+INSTRUCTIONS:
+1. Implement exactly what is described above in this repository.
+2. When finished, read the file .agent_workspace/*/stage.json, find YOUR subtask (id: "${sub.id}"), set its "status" to "completed", and add a summary to "result".
+3. Save the updated stage.json.
+4. Verify your code compiles (npm run build or npx tsc).
+`;
+
+                            const chainResult = await db.execute({
+                                sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status) VALUES (?, ?, ?, 'pending')`,
+                                args: ['./', chainPrompt, repoUrl]
+                            });
+
+                            const newId = Number(chainResult.lastInsertRowid);
+                            log.info(`[CloudWorker] Auto-chained subtask "${sub.title}" as DB task #${newId}`);
+                            await sendTelegramNotification(`🔗 **Auto-Chain:** Neuer Task #${newId} erstellt für **${role}** – "${sub.title}"`);
+                        }
+                    } else {
+                        log.info(`[CloudWorker] No pending subtasks found in stage.json. Pipeline complete.`);
+                    }
+                } catch (parseErr) {
+                    log.warn(`[CloudWorker] Failed to parse stage.json for auto-chaining`, { error: String(parseErr) });
+                }
+            }
+
             // Send completion message directly to Telegram
             let text = `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
             if (changesPushed) {
