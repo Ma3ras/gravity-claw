@@ -11,7 +11,8 @@ import { initDatabase, createTables } from "./memory/db.js";
 import { MemoryManager } from "./memory/manager.js";
 import { createBot } from "./bot.js";
 import { createDiscordBot } from "./channels/discord.js";
-import { loadSkills, skillsToPrompt } from "./skills/loader.js";
+import { loadSkills, SkillStore, skillsIndexToPrompt } from "./skills/loader.js";
+import { createLoadSkillTool } from "./tools/load-skill.js";
 import { McpBridge } from "./mcp/bridge.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { createScheduleMonitorTool } from "./tools/schedule-monitor.js";
@@ -68,10 +69,12 @@ async function main() {
         tools: toolRegistry.getAll().map((t) => t.name),
     });
 
-    // ── Load skills ─────────────────────────────────────────────
+    // ── Load skills (lazy: index in prompt, full content via tool) ───
     const skills = await loadSkills("./skills");
-    const skillsPrompt = skillsToPrompt(skills);
-    log.info(`Loaded ${skills.length} skill(s)`, { skills: skills.map(s => s.name) });
+    const skillStore = new SkillStore(skills);
+    const skillsPrompt = skillsIndexToPrompt(skillStore);
+    toolRegistry.register(createLoadSkillTool(skillStore));
+    log.info(`Loaded ${skills.length} skill(s) [lazy]`, { skills: skills.map(s => s.name) });
 
     // ── Start Telegram bot ────────────────────────────────────────
     const bot = createBot(toolRegistry, memory, skillsPrompt);
@@ -118,7 +121,7 @@ async function main() {
             console.log(`  ║  Bot: @${botInfo.username.padEnd(33)}║`);
             console.log(`  ║  Model: ${config.llmModel.padEnd(32)}║`);
             console.log(`  ║  Tools: ${toolRegistry.getAll().length.toString().padEnd(32)}║`);
-            console.log(`  ║  Skills: ${skills.length.toString().padEnd(31)}║`);
+            console.log(`  ║  Skills: ${skillStore.size} (lazy-loaded)`.padEnd(44) + "║");
             console.log(`  ║  Memory: ${stats.facts} facts, ${stats.messages} msgs`.padEnd(42) + "║");
             console.log(`  ║  Allowed users: ${config.allowedUserIds.size.toString().padEnd(24)}║`);
             console.log("  ║                                          ║");

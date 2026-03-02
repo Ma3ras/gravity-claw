@@ -12,6 +12,56 @@ export interface Skill {
     filename: string;
 }
 
+// ── Skill Store ──────────────────────────────────────────────────────────────
+
+/**
+ * In-memory store for skills. Holds full content but only exposes
+ * a lightweight index to the system prompt. Full content is loaded
+ * on-demand via the `load_skill` tool.
+ */
+export class SkillStore {
+    private skills = new Map<string, Skill>();
+
+    constructor(skills: Skill[]) {
+        for (const skill of skills) {
+            this.skills.set(skill.name.toLowerCase(), skill);
+        }
+    }
+
+    /** Get a skill by name (case-insensitive, supports partial match). */
+    get(name: string): Skill | undefined {
+        const key = name.toLowerCase().trim();
+
+        // Exact match first
+        if (this.skills.has(key)) {
+            return this.skills.get(key);
+        }
+
+        // Partial match — find the first skill whose name contains the query
+        for (const [skillKey, skill] of this.skills) {
+            if (skillKey.includes(key) || key.includes(skillKey)) {
+                return skill;
+            }
+        }
+
+        return undefined;
+    }
+
+    /** List all skill names with descriptions (lightweight). */
+    list(): Array<{ name: string; description: string; triggers: string[] }> {
+        return Array.from(this.skills.values()).map((s) => ({
+            name: s.name,
+            description: s.description,
+            triggers: s.triggers,
+        }));
+    }
+
+    /** Total number of skills loaded. */
+    get size(): number {
+        return this.skills.size;
+    }
+}
+
 // ── Loader ───────────────────────────────────────────────────────────────────
 
 /**
@@ -106,7 +156,33 @@ function parseSkillFile(content: string, filename: string): Skill | null {
 }
 
 /**
- * Format loaded skills into a system prompt section.
+ * Generate a lightweight skill INDEX for the system prompt.
+ * Only includes name, description, and triggers — NOT full instructions.
+ * The LLM uses the `load_skill` tool to fetch full content when needed.
+ */
+export function skillsIndexToPrompt(store: SkillStore): string {
+    const skills = store.list();
+    if (skills.length === 0) return "";
+
+    let prompt = "\n\n--- Available Skills ---\n";
+    prompt += "You have specialized skills available. To use a skill, call the `load_skill` tool with the skill name.\n";
+    prompt += "Only load a skill when the user's request matches its description/triggers.\n\n";
+
+    for (let i = 0; i < skills.length; i++) {
+        const skill = skills[i]!;
+        prompt += `${i + 1}. **${skill.name}**: ${skill.description}\n`;
+        if (skill.triggers.length > 0) {
+            prompt += `   Triggers: ${skill.triggers.join(", ")}\n`;
+        }
+    }
+
+    prompt += "\n--- End Available Skills ---\n";
+    return prompt;
+}
+
+/**
+ * @deprecated Use skillsIndexToPrompt() + load_skill tool instead.
+ * Format loaded skills into a system prompt section (includes FULL content).
  */
 export function skillsToPrompt(skills: Skill[]): string {
     if (skills.length === 0) return "";
