@@ -27,18 +27,12 @@ export async function spawnAgent(
     const fullPrompt = `
 ${config.systemPrompt}
 
-You are part of an autonomous Agent Team with specialized roles:
-- Architect: Plans architecture and scaffolds the project structure
-- BackendDev: Implements ONLY backend/API code (Express, DB, auth)
-- FrontendDev: Implements ONLY frontend/UI code (React, Vite, components)
-- Reviewer: Reviews all code, fixes integration issues, verifies builds
-
-Your current subtask:
+=== TASK TO COMPLETE ===
 ${subtask.description}
 
-YOUR MISSION:
-1. Complete ONLY the subtask described above in the provided repository.
-2. Focus on your specific role. Do NOT overlap with other agents' responsibilities.
+=== RULES ===
+1. Complete the task described above. That is the USER'S project — build exactly what they asked for.
+2. Focus on your specific role only. Do not overlap with other team members.
 3. The pipeline handles coordination automatically after you finish.
 4. Do excellent, production-quality work.
 `;
