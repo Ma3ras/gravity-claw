@@ -297,12 +297,16 @@ async function verifyCodexAuth(): Promise<void> {
 }
 
 async function deployToNetlify(cloneDir: string): Promise<string | null> {
-    if (!process.env.NETLIFY_AUTH_TOKEN || !process.env.NETLIFY_SITE_ID) {
+    const authToken = process.env.NETLIFY_AUTH_TOKEN;
+    const siteId = process.env.NETLIFY_SITE_ID;
+
+    if (!authToken || !siteId) {
         log.warn("[CloudWorker] Netlify credentials missing. Skipping deployment.");
         return null;
     }
 
     try {
+        // Find the frontend directory
         let frontendDir = cloneDir;
         let pjsonPath = path.join(cloneDir, "package.json");
 
@@ -325,39 +329,55 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
         await sendTelegramNotification(`Baue Frontend fuer Netlify...`);
 
-        // Use a timeout to prevent hanging on npm install/build (60 seconds max each)
-        const execWithTimeout = (cmd: string, opts: any, timeoutMs = 60000): Promise<any> => {
+        // Helper: exec with timeout and CI=true to prevent any interactive prompts
+        const ciEnv = { ...process.env, CI: 'true', NODE_ENV: 'production' };
+
+        const execWithTimeout = (cmd: string, cwd: string, timeoutMs = 90000): Promise<{ stdout: string; stderr: string }> => {
             return new Promise((resolve, reject) => {
-                const child = require('child_process').exec(cmd, opts, (error: any, stdout: string, stderr: string) => {
-                    if (error) reject(error);
+                const child = require('child_process').exec(cmd, { cwd, env: ciEnv, maxBuffer: 10 * 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
+                    if (error) reject(new Error(`${cmd} failed: ${error.message}\nstderr: ${stderr?.substring(0, 500)}`));
                     else resolve({ stdout, stderr });
                 });
                 const timer = setTimeout(() => {
                     child.kill('SIGTERM');
-                    reject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd}`));
+                    reject(new Error(`Command timed out after ${timeoutMs / 1000}s: ${cmd}`));
                 }, timeoutMs);
                 child.on('exit', () => clearTimeout(timer));
             });
         };
 
-        log.info(`[CloudWorker] Running npm install in ${frontendDir}...`);
-        await execWithTimeout("npm install", { cwd: frontendDir }, 90000);
-        log.info(`[CloudWorker] npm install done. Running npm run build...`);
-        await execWithTimeout("npm run build", { cwd: frontendDir }, 90000);
+        // Step 1: npm install (with CI flags to avoid prompts)
+        log.info(`[CloudWorker] Running: npm install --legacy-peer-deps in ${frontendDir}`);
+        await execWithTimeout("npm install --legacy-peer-deps", frontendDir, 120000);
+        log.info(`[CloudWorker] npm install completed.`);
 
-        const distDir = fs.existsSync(path.join(frontendDir, "dist")) ? "dist" : (fs.existsSync(path.join(frontendDir, "build")) ? "build" : ".");
+        // Step 2: npm run build
+        log.info(`[CloudWorker] Running: npm run build in ${frontendDir}`);
+        await execWithTimeout("npm run build", frontendDir, 120000);
+        log.info(`[CloudWorker] Build completed.`);
 
-        log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
-        await execWithTimeout(`npx netlify deploy --prod --dir=${distDir}`, {
-            cwd: frontendDir,
-            env: { ...process.env }
-        }, 60000);
+        // Step 3: Find the dist/build output directory
+        const distDir = fs.existsSync(path.join(frontendDir, "dist"))
+            ? path.join(frontendDir, "dist")
+            : fs.existsSync(path.join(frontendDir, "build"))
+                ? path.join(frontendDir, "build")
+                : frontendDir;
 
-        log.info("[CloudWorker] Netlify deployment successful.");
-        return "https://gravity-claw-dev.netlify.app";
+        // Step 4: Deploy to Netlify using the globally installed CLI with explicit auth
+        log.info(`[CloudWorker] Deploying ${distDir} to Netlify site ${siteId}...`);
+        const deployCmd = `netlify deploy --prod --dir="${distDir}" --site="${siteId}" --auth="${authToken}"`;
+        const { stdout: deployOut } = await execWithTimeout(deployCmd, frontendDir, 60000);
+
+        // Extract the URL from Netlify CLI output
+        const urlMatch = deployOut.match(/https:\/\/[^\s]+\.netlify\.app/);
+        const deployUrl = urlMatch ? urlMatch[0] : "https://gravity-claw-dev.netlify.app";
+
+        log.info("[CloudWorker] Netlify deployment successful!", { url: deployUrl });
+        await sendTelegramNotification(`Netlify Deploy erfolgreich: ${deployUrl}`);
+        return deployUrl;
     } catch (e: any) {
         log.error("[CloudWorker] Netlify deployment failed", { error: String(e) });
-        await sendTelegramNotification(`Netlify Deployment fehlgeschlagen: ${e.message?.substring(0, 300)}`);
+        await sendTelegramNotification(`Netlify Deploy fehlgeschlagen: ${String(e).substring(0, 400)}`);
         return null;
     }
 }
