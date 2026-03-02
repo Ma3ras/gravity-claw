@@ -296,6 +296,6 @@ export class Orchestrator {
                     console.error(`[Orchestrator] Error polling DB for task ${subtask.dbTaskId}:`, e);
                 }
             }
-        }, 15000); // Check every 15s
+        }, 5000); // Check every 5s
     }
 }
