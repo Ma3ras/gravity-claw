@@ -491,20 +491,21 @@ async function startWorker() {
 The Lead Architect has completed the planning phase. Here is the architecture plan:
 ${architectPlan}
 
+Read the ARCHITECTURE.md file in the repository for the full plan.
+
 YOUR JOB - BACKEND ONLY:
-1. Set up the Express.js backend server in the apps/bot directory (or root if flat repo).
-2. Implement ALL API routes: /api/auth/register, /api/auth/login, /api/auth/logout, /api/me
-3. Implement JWT authentication (sign, verify, refresh tokens, expiration via ENV).
-4. Implement bcrypt password hashing (hash on register, compare on login).
-5. Set up the database layer (SQLite with better-sqlite3 or similar).
-6. Add CORS configuration, input validation, and proper error handling middleware.
-7. Create a .env.example file with all required environment variables.
-8. Install all backend dependencies (npm init if needed, npm install).
-9. Verify the backend compiles and starts: npx tsc or node server.js
+1. Implement the COMPLETE backend according to the Architect's plan.
+2. Set up the server (Express/Node.js) with ALL API routes defined in the architecture.
+3. Set up the database layer as specified in the architecture.
+4. Add CORS, input validation, error handling middleware.
+5. Create a .env.example with all required environment variables.
+6. Install all backend dependencies (npm init if needed, npm install).
+7. Verify the backend compiles and starts.
 
 CRITICAL RULES:
+- Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic auth system.
 - Do NOT touch any frontend/React code. Another agent handles the frontend.
-- Focus 100% on backend quality: clean code, proper error responses, security best practices.
+- Focus 100% on backend quality: clean code, proper error responses, best practices.
 - Make sure your API endpoints return proper JSON responses that a React frontend can consume.`;
 
                 const backendResult = await db.execute({
@@ -519,27 +520,22 @@ CRITICAL RULES:
 The Lead Architect has completed the planning phase. Here is the architecture plan:
 ${architectPlan}
 
+Read the ARCHITECTURE.md file in the repository for the full plan.
+
 YOUR JOB - FRONTEND ONLY:
-1. Set up a React + TypeScript frontend in the apps/web directory (use Vite: npx create-vite apps/web --template react-ts).
-2. Create beautiful, modern UI components:
-   - LoginForm component with email/password fields
-   - RegisterForm component with name/email/password/confirm fields
-   - Dashboard component showing the logged-in user info
-   - Navigation with Login/Register/Logout buttons
-3. Implement client-side auth state management (React Context or zustand).
-4. Use fetch/axios to call the backend API endpoints:
-   - POST /api/auth/register
-   - POST /api/auth/login
-   - POST /api/auth/logout
-   - GET /api/me (with JWT token in Authorization header)
-5. Add protected routes (redirect to login if not authenticated).
-6. Style with modern CSS (Tailwind CSS, CSS modules, or styled-components).
+1. Implement the COMPLETE frontend according to the Architect's plan.
+2. Set up a React + TypeScript + Vite frontend in the apps/web directory.
+3. Create ALL UI components specified in the architecture - make them beautiful and modern.
+4. Implement client-side state management as needed (React Context, zustand, etc.).
+5. Connect to the backend API endpoints defined in the architecture using fetch/axios.
+6. Style with modern CSS (Tailwind, CSS modules, or styled-components) - make it look premium.
 7. Install all frontend dependencies.
 8. Verify the frontend builds: npx vite build
 
 CRITICAL RULES:
+- Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic login page.
 - Do NOT write any backend/Express/API code. Another agent handles the backend.
-- Focus 100% on frontend quality: responsive design, form validation, loading states, error handling.
+- Focus 100% on frontend quality: responsive design, animations, loading states, error handling.
 - The API base URL should be configurable (e.g. via .env or a constant).`;
 
                 const frontendResult = await db.execute({
@@ -549,7 +545,7 @@ CRITICAL RULES:
                 const frontendId = Number(frontendResult.lastInsertRowid);
 
                 log.info(`[CloudWorker] Auto-chained BackendDev #${backendId} + FrontendDev #${frontendId} (parallel)`);
-                await sendTelegramNotification(`[Auto-Chain] 2 parallele Tasks erstellt:\n- BackendDev #${backendId} (Express API + Auth)\n- FrontendDev #${frontendId} (React UI)\nBeide arbeiten gleichzeitig!`);
+                await sendTelegramNotification(`[Auto-Chain] 2 parallele Tasks erstellt:\n- BackendDev #${backendId} (Server + API)\n- FrontendDev #${frontendId} (React UI)\nBeide arbeiten gleichzeitig!`);
 
             } else if ((taskRole === 'BackendDev' || taskRole === 'FrontendDev') && chainId) {
                 // One of the parallel devs finished. Check if the OTHER one is also done.
