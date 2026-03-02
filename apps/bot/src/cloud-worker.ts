@@ -475,70 +475,132 @@ async function startWorker() {
             // 3. Push back to GitHub
             const changesPushed = await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
-            // 4. AUTO-CHAIN: DB-driven pipeline (Architect -> Developer -> Reviewer)
+            // 4. AUTO-CHAIN: Parallel pipeline (Architect -> [BackendDev + FrontendDev] -> Reviewer)
             // This MUST run before Netlify deploy to avoid blocking the pipeline
             if (taskRole === 'Architect' && chainId) {
-                log.info(`[CloudWorker] Architect completed. Auto-chaining Developer task...`);
+                log.info(`[CloudWorker] Architect completed. Creating parallel BackendDev + FrontendDev tasks...`);
                 let architectPlan = '';
                 try {
                     const { stdout } = await execPromise(`git log --oneline -1 --format="%B" && git diff HEAD~1 --stat`, { cwd: cloneDir });
                     architectPlan = stdout.substring(0, 3000);
                 } catch { architectPlan = 'See repository for Architect output.'; }
 
-                const devPrompt = `You are a Senior Full-Stack Developer in an autonomous agent team.
+                // --- BackendDev Task ---
+                const backendPrompt = `You are a Senior Backend Developer in an autonomous agent team.
 
-The Lead Architect has completed the planning phase for this project.
-Here is what the Architect produced (git changes):
+The Lead Architect has completed the planning phase. Here is the architecture plan:
 ${architectPlan}
 
-YOUR JOB:
-1. Implement the COMPLETE codebase according to the Architect plan in this repository.
-2. Write ALL necessary code files (backend, frontend, configs, etc.).
-3. Install dependencies (npm init, npm install, etc.).
-4. Verify everything compiles: run npm run build or npx tsc.
-5. Write a README.md with setup instructions.
-6. DO NOT skip steps. Write real, working code.`;
+YOUR JOB - BACKEND ONLY:
+1. Set up the Express.js backend server in the apps/bot directory (or root if flat repo).
+2. Implement ALL API routes: /api/auth/register, /api/auth/login, /api/auth/logout, /api/me
+3. Implement JWT authentication (sign, verify, refresh tokens, expiration via ENV).
+4. Implement bcrypt password hashing (hash on register, compare on login).
+5. Set up the database layer (SQLite with better-sqlite3 or similar).
+6. Add CORS configuration, input validation, and proper error handling middleware.
+7. Create a .env.example file with all required environment variables.
+8. Install all backend dependencies (npm init if needed, npm install).
+9. Verify the backend compiles and starts: npx tsc or node server.js
 
-                const devResult = await db.execute({
-                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Developer', ?)`,
-                    args: ['./', devPrompt, repoUrl, chainId]
+CRITICAL RULES:
+- Do NOT touch any frontend/React code. Another agent handles the frontend.
+- Focus 100% on backend quality: clean code, proper error responses, security best practices.
+- Make sure your API endpoints return proper JSON responses that a React frontend can consume.`;
+
+                const backendResult = await db.execute({
+                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'BackendDev', ?)`,
+                    args: ['./', backendPrompt, repoUrl, chainId]
                 });
-                const devId = Number(devResult.lastInsertRowid);
-                log.info(`[CloudWorker] Auto-chained Developer as DB task #${devId}`);
-                await sendTelegramNotification(`[Auto-Chain] Developer-Task #${devId} erstellt. Der Developer implementiert jetzt den Code!`);
+                const backendId = Number(backendResult.lastInsertRowid);
 
-            } else if (taskRole === 'Developer' && chainId) {
-                log.info(`[CloudWorker] Developer completed. Auto-chaining Reviewer task...`);
-                let devChanges = '';
-                try {
-                    const { stdout } = await execPromise(`git log --oneline -3 && git diff HEAD~1 --stat`, { cwd: cloneDir });
-                    devChanges = stdout.substring(0, 3000);
-                } catch { devChanges = 'See repository for Developer output.'; }
+                // --- FrontendDev Task ---
+                const frontendPrompt = `You are a Senior Frontend Developer (React + TypeScript) in an autonomous agent team.
 
-                const reviewPrompt = `You are a strict QA Reviewer and Security Auditor in an autonomous agent team.
+The Lead Architect has completed the planning phase. Here is the architecture plan:
+${architectPlan}
 
-The Developer has just finished implementing the project. Here is a summary of their changes:
-${devChanges}
+YOUR JOB - FRONTEND ONLY:
+1. Set up a React + TypeScript frontend in the apps/web directory (use Vite: npx create-vite apps/web --template react-ts).
+2. Create beautiful, modern UI components:
+   - LoginForm component with email/password fields
+   - RegisterForm component with name/email/password/confirm fields
+   - Dashboard component showing the logged-in user info
+   - Navigation with Login/Register/Logout buttons
+3. Implement client-side auth state management (React Context or zustand).
+4. Use fetch/axios to call the backend API endpoints:
+   - POST /api/auth/register
+   - POST /api/auth/login
+   - POST /api/auth/logout
+   - GET /api/me (with JWT token in Authorization header)
+5. Add protected routes (redirect to login if not authenticated).
+6. Style with modern CSS (Tailwind CSS, CSS modules, or styled-components).
+7. Install all frontend dependencies.
+8. Verify the frontend builds: npx vite build
+
+CRITICAL RULES:
+- Do NOT write any backend/Express/API code. Another agent handles the backend.
+- Focus 100% on frontend quality: responsive design, form validation, loading states, error handling.
+- The API base URL should be configurable (e.g. via .env or a constant).`;
+
+                const frontendResult = await db.execute({
+                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'FrontendDev', ?)`,
+                    args: ['./', frontendPrompt, repoUrl, chainId]
+                });
+                const frontendId = Number(frontendResult.lastInsertRowid);
+
+                log.info(`[CloudWorker] Auto-chained BackendDev #${backendId} + FrontendDev #${frontendId} (parallel)`);
+                await sendTelegramNotification(`[Auto-Chain] 2 parallele Tasks erstellt:\n- BackendDev #${backendId} (Express API + Auth)\n- FrontendDev #${frontendId} (React UI)\nBeide arbeiten gleichzeitig!`);
+
+            } else if ((taskRole === 'BackendDev' || taskRole === 'FrontendDev') && chainId) {
+                // One of the parallel devs finished. Check if the OTHER one is also done.
+                const otherRole = taskRole === 'BackendDev' ? 'FrontendDev' : 'BackendDev';
+                log.info(`[CloudWorker] ${taskRole} completed. Checking if ${otherRole} is also done...`);
+
+                const otherResult = await db.execute({
+                    sql: `SELECT status FROM antigravity_tasks WHERE chain_id = ? AND role = ? ORDER BY created_at DESC LIMIT 1`,
+                    args: [chainId, otherRole]
+                });
+
+                if (otherResult.rows.length > 0 && otherResult.rows[0].status === 'completed') {
+                    // BOTH devs are done! Create the Reviewer
+                    log.info(`[CloudWorker] Both BackendDev and FrontendDev completed! Auto-chaining Reviewer...`);
+
+                    let allChanges = '';
+                    try {
+                        const { stdout } = await execPromise(`git log --oneline -5 && git diff HEAD~1 --stat`, { cwd: cloneDir });
+                        allChanges = stdout.substring(0, 3000);
+                    } catch { allChanges = 'See repository for all changes.'; }
+
+                    const reviewPrompt = `You are a strict QA Reviewer and Security Auditor in an autonomous agent team.
+
+Two developers (Backend + Frontend) have just finished implementing the project independently.
+Here is a summary of recent changes:
+${allChanges}
 
 YOUR JOB:
-1. Review ALL code files for bugs, security issues, and best practices.
-2. Run the test suite if it exists (npm test).
-3. Run the build (npm run build or npx tsc) to verify compilation.
-4. Fix any critical bugs you find directly in the code.
-5. Ensure a complete README.md exists with accurate setup instructions.
-6. If there are issues, fix them. Do not just report them.`;
+1. Review ALL code files (both backend AND frontend) for bugs, security issues, and best practices.
+2. Make sure the backend API and frontend are properly integrated (correct API URLs, CORS, auth headers).
+3. Run the test suite if it exists (npm test).
+4. Verify both backend and frontend compile: npx tsc, npx vite build.
+5. Fix any critical bugs you find directly in the code.
+6. Ensure a complete README.md exists with setup instructions for BOTH backend and frontend.
+7. If there are integration issues between backend and frontend, fix them.`;
 
-                const reviewResult = await db.execute({
-                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Reviewer', ?)`,
-                    args: ['./', reviewPrompt, repoUrl, chainId]
-                });
-                const reviewId = Number(reviewResult.lastInsertRowid);
-                log.info(`[CloudWorker] Auto-chained Reviewer as DB task #${reviewId}`);
-                await sendTelegramNotification(`[Auto-Chain] Reviewer-Task #${reviewId} erstellt. Der Reviewer prueft jetzt den Code!`);
+                    const reviewResult = await db.execute({
+                        sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Reviewer', ?)`,
+                        args: ['./', reviewPrompt, repoUrl, chainId]
+                    });
+                    const reviewId = Number(reviewResult.lastInsertRowid);
+                    log.info(`[CloudWorker] Auto-chained Reviewer as DB task #${reviewId}`);
+                    await sendTelegramNotification(`[Auto-Chain] Beide Devs fertig! Reviewer-Task #${reviewId} erstellt. Der Reviewer prueft jetzt den gesamten Code!`);
+                } else {
+                    log.info(`[CloudWorker] ${otherRole} is not yet completed. Waiting for it to finish before creating Reviewer.`);
+                    await sendTelegramNotification(`[Auto-Chain] ${taskRole} ist fertig! Warte auf ${otherRole}...`);
+                }
 
             } else if (taskRole === 'Reviewer' && chainId) {
                 log.info(`[CloudWorker] Reviewer completed. Pipeline for chain ${chainId} is DONE!`);
-                await sendTelegramNotification(`Pipeline komplett! Alle 3 Agenten (Architect, Developer, Reviewer) haben das Projekt erfolgreich abgeschlossen! Repo: https://github.com/${repoUrl.replace('.git', '')}`);
+                await sendTelegramNotification(`Pipeline komplett! Alle 4 Agenten (Architect, BackendDev, FrontendDev, Reviewer) haben das Projekt erfolgreich abgeschlossen! Repo: https://github.com/${repoUrl.replace('.git', '')}`);
             }
 
             // 5. Deploy to Netlify (non-blocking, fire-and-forget)
