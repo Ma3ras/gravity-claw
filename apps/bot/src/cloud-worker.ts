@@ -366,9 +366,9 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
                 ? path.join(frontendDir, "build")
                 : frontendDir;
 
-        // Step 4: Deploy to Netlify using the globally installed CLI with explicit auth
-        log.info(`[CloudWorker] Deploying ${distDir} to Netlify site ${siteId}...`);
-        const deployCmd = `netlify deploy --prod --dir="${distDir}" --site="${siteId}" --auth="${authToken}"`;
+        // Step 4: Deploy to Netlify - auth/site picked up from env vars in ciEnv
+        log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
+        const deployCmd = `netlify deploy --prod --dir="${distDir}"`;
         const { stdout: deployOut } = await execWithTimeout(deployCmd, frontendDir, 60000);
 
         // Extract the URL from Netlify CLI output
@@ -379,8 +379,10 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         await sendTelegramNotification(`Netlify Deploy erfolgreich: ${deployUrl}`);
         return deployUrl;
     } catch (e: any) {
+        // Sanitize error: never leak auth tokens in Telegram messages
+        const errMsg = String(e).replace(/--auth="[^"]*"/g, '--auth="***"').replace(/--site="[^"]*"/g, '--site="***"').substring(0, 300);
         log.error("[CloudWorker] Netlify deployment failed", { error: String(e) });
-        await sendTelegramNotification(`Netlify Deploy fehlgeschlagen: ${String(e).substring(0, 400)}`);
+        await sendTelegramNotification(`Netlify Deploy fehlgeschlagen: ${errMsg}`);
         return null;
     }
 }
