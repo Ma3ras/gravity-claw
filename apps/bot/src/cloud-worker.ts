@@ -3,7 +3,7 @@ import { log } from "./utils/logger.js";
 import { initDatabase } from "./memory/db.js";
 import { exec, spawn } from "child_process";
 import { promisify } from "util";
-import fs, { rmSync } from "fs";
+import fs from "fs";
 import path from "path";
 import os from "os";
 
@@ -323,15 +323,13 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
     }
 
     try {
-        // Find the frontend directory - prioritize apps/web (monorepo frontend) over root
         let frontendDir = cloneDir;
         let pjsonPath = path.join(cloneDir, "package.json");
 
-        // Check for monorepo web frontend first (apps/web takes priority)
-        const webPjsonPath = path.join(cloneDir, "apps/web/package.json");
-        if (fs.existsSync(webPjsonPath)) {
+        // Prefer apps/web in monorepo
+        if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
             frontendDir = path.join(cloneDir, "apps/web");
-            pjsonPath = webPjsonPath;
+            pjsonPath = path.join(frontendDir, "package.json");
             log.info(`[CloudWorker] Found monorepo frontend at apps/web`);
         }
 
@@ -340,66 +338,37 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
             return null;
         }
 
-        const pjson = JSON.parse(fs.readFileSync(pjsonPath, "utf-8"));
-        if (!pjson.scripts || !pjson.scripts.build) {
-            log.info("[CloudWorker] No build script found in package.json. Skipping Netlify deployment.");
+        log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
+        await sendTelegramNotification(`🏗️ **Baue Frontend fuer Netlify...**`);
+
+        const ciEnv = { ...process.env, CI: 'true' };
+        await execPromise("npm install", { cwd: frontendDir, env: ciEnv });
+
+        // Use npx vite build directly to bypass TypeScript type-checking errors
+        await execPromise("npx vite build", { cwd: frontendDir, env: ciEnv, timeout: 60000 });
+
+        const distDir = path.join(frontendDir, "dist");
+        if (!fs.existsSync(distDir)) {
+            log.warn("[CloudWorker] No dist directory found after build. Skipping Netlify deployment.");
             return null;
         }
 
-        log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
-        await sendTelegramNotification(`Baue Frontend fuer Netlify...`);
+        log.info(`[CloudWorker] Deploying to Netlify...`);
+        await execPromise(`npx netlify deploy --prod --dir="${distDir}" --site="${siteId}"`, {
+            cwd: frontendDir,
+            env: { ...ciEnv, NETLIFY_AUTH_TOKEN: authToken },
+            timeout: 60000
+        });
 
-        // Helper: exec with timeout and CI=true to prevent any interactive prompts
-        const ciEnv = { ...process.env, CI: 'true' };
-
-        const execWithTimeout = (cmd: string, cwd: string, timeoutMs = 90000): Promise<{ stdout: string; stderr: string }> => {
-            return new Promise((resolve, reject) => {
-                const child = exec(cmd, { cwd, env: ciEnv, maxBuffer: 10 * 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
-                    if (error) reject(new Error(`${cmd} failed: ${error.message}\nstderr: ${stderr?.substring(0, 500)}`));
-                    else resolve({ stdout, stderr });
-                });
-                const timer = setTimeout(() => {
-                    child.kill('SIGTERM');
-                    reject(new Error(`Command timed out after ${timeoutMs / 1000}s: ${cmd}`));
-                }, timeoutMs);
-                child.on('exit', () => clearTimeout(timer));
-            });
-        };
-
-        // Step 1: npm install (with CI flags to avoid prompts)
-        log.info(`[CloudWorker] Running: npm install --legacy-peer-deps in ${frontendDir}`);
-        await execWithTimeout("npm install --legacy-peer-deps", frontendDir, 120000);
-        log.info(`[CloudWorker] npm install completed.`);
-
-        // Step 2: Build with Vite directly (skip tsc type-checking which fails on Codex-generated code)
-        log.info(`[CloudWorker] Running: npx vite build in ${frontendDir}`);
-        await execWithTimeout("npx vite build", frontendDir, 120000);
-        log.info(`[CloudWorker] Build completed.`);
-
-        // Step 3: Find the dist/build output directory
-        const distDir = fs.existsSync(path.join(frontendDir, "dist"))
-            ? path.join(frontendDir, "dist")
-            : fs.existsSync(path.join(frontendDir, "build"))
-                ? path.join(frontendDir, "build")
-                : frontendDir;
-
-        // Step 4: Deploy to Netlify - auth/site picked up from env vars in ciEnv
-        log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
-        const deployCmd = `netlify deploy --prod --dir="${distDir}"`;
-        const { stdout: deployOut } = await execWithTimeout(deployCmd, frontendDir, 60000);
-
-        // Extract the URL from Netlify CLI output
-        const urlMatch = deployOut.match(/https:\/\/[^\s]+\.netlify\.app/);
-        const deployUrl = urlMatch ? urlMatch[0] : "https://gravity-claw-dev.netlify.app";
-
-        log.info("[CloudWorker] Netlify deployment successful!", { url: deployUrl });
-        await sendTelegramNotification(`Netlify Deploy erfolgreich: ${deployUrl}`);
-        return deployUrl;
+        const url = "https://gravity-claw-dev.netlify.app";
+        log.info("[CloudWorker] Netlify deployment successful.");
+        await sendTelegramNotification(`🌐 Netlify Deploy erfolgreich: ${url}`);
+        return url;
     } catch (e: any) {
         // Sanitize error: never leak auth tokens in Telegram messages
         const errMsg = String(e).replace(/--auth="[^"]*"/g, '--auth="***"').replace(/--site="[^"]*"/g, '--site="***"').substring(0, 300);
-        log.error("[CloudWorker] Netlify deployment failed", { error: String(e) });
-        await sendTelegramNotification(`Netlify Deploy fehlgeschlagen: ${errMsg}`);
+        log.error("[CloudWorker] Netlify deployment failed", { error: errMsg });
+        await sendTelegramNotification(`⚠️ Netlify Deploy fehlgeschlagen: ${errMsg}`);
         return null;
     }
 }
@@ -437,7 +406,7 @@ async function startWorker() {
         try {
             console.log("[Trace] Polling Turso...");
             const result = await db.execute(`
-                SELECT id, project_path, prompt, repo_url, role, chain_id 
+                SELECT id, project_path, prompt, repo_url 
                 FROM antigravity_tasks 
                 WHERE status = 'pending' 
                 ORDER BY created_at ASC 
@@ -456,8 +425,6 @@ async function startWorker() {
             const rawProjectPath = row.project_path as string;
             const prompt = row.prompt as string;
             const repoUrl = (row.repo_url as string) || "github.com/Ma3ras/gravity-claw.git";
-            const taskRole = (row.role as string) || null;
-            const chainId = (row.chain_id as string) || null;
             const cloneDir = path.resolve(process.env.CLONE_DIR || `./cloud-workspace-${id}`);
 
             log.info(`[CloudWorker] Picked up task #${id} for repo ${repoUrl}`);
@@ -473,19 +440,16 @@ async function startWorker() {
             await sendTelegramNotification(`🔄 **Aufgabe #${id} in Bearbeitung!**\n\nDer Cloud Worker bereitet den Workspace für das Repository \`${repoUrl}\` vor...`);
             await setupWorkspace(repoUrl, cloneDir);
 
-            // Determine the relative path for Codex to operate in (role-aware).
+            // Determine the relative path for Codex to operate in.
             let relativePath = "";
-            if (taskRole === 'FrontendDev' && fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
-                // FrontendDev works in apps/web specifically
+            if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
                 relativePath = "apps/web";
-            } else if (repoUrl.includes("gravity-claw")) {
-                // Legacy: gravity-claw backend modifications
+            } else if (fs.existsSync(path.join(cloneDir, "apps/bot/package.json")) && repoUrl.includes("gravity-claw")) {
+                // Legacy fallback: if modifying gravity-claw backend specifically
                 if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) {
                     relativePath = "apps/bot";
                 }
             }
-            // Architect, BackendDev, and Reviewer always work in repo ROOT
-            // so they can see ARCHITECTURE.md and the full project structure
 
             // 2. Run Codex
             await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern (ETA: ca. 5 bis 15 Minuten).`);
@@ -494,150 +458,20 @@ async function startWorker() {
             // 3. Push back to GitHub
             const changesPushed = await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
-            // 4. AUTO-CHAIN: Parallel pipeline (Architect -> [BackendDev + FrontendDev] -> Reviewer)
-            // This MUST run before Netlify deploy to avoid blocking the pipeline
-            if (taskRole === 'Architect' && chainId) {
-                log.info(`[CloudWorker] Architect completed. Creating parallel BackendDev + FrontendDev tasks...`);
-
-                // Read the Architect's plan directly from ARCHITECTURE.md (much better than git diff stat)
-                let architectPlan = '';
-                const archMdPath = path.join(cloneDir, 'ARCHITECTURE.md');
-                if (fs.existsSync(archMdPath)) {
-                    architectPlan = fs.readFileSync(archMdPath, 'utf-8').substring(0, 5000);
-                    log.info(`[CloudWorker] Read ARCHITECTURE.md (${architectPlan.length} chars)`);
-                } else {
-                    // Fallback: try git diff for the plan
-                    try {
-                        const { stdout } = await execPromise(`git log --oneline -1 --format="%B" && git diff HEAD~1`, { cwd: cloneDir });
-                        architectPlan = stdout.substring(0, 5000);
-                    } catch { architectPlan = 'Check the repository files for the architecture plan.'; }
-                    log.warn(`[CloudWorker] No ARCHITECTURE.md found, using git diff as fallback`);
-                }
-
-                // --- BackendDev Task ---
-                const backendPrompt = `You are a Senior Backend Developer in an autonomous agent team.
-
-The Lead Architect has completed the planning phase. Here is the architecture plan:
-${architectPlan}
-
-Read the ARCHITECTURE.md file in the repository for the full plan.
-
-YOUR JOB - BACKEND ONLY:
-1. Implement the COMPLETE backend according to the Architect's plan.
-2. Set up the server (Express/Node.js) with ALL API routes defined in the architecture.
-3. Set up the database layer as specified in the architecture.
-4. Add CORS, input validation, error handling middleware.
-5. Create a .env.example with all required environment variables.
-6. Install all backend dependencies (npm init if needed, npm install).
-7. Verify the backend compiles and starts.
-
-CRITICAL RULES:
-- Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic auth system.
-- Do NOT add user registration/login/JWT authentication UNLESS the ARCHITECTURE.md explicitly requires it.
-- Do NOT touch any frontend/React code. Another agent handles the frontend.
-- Focus 100% on backend quality: clean code, proper error responses, best practices.
-- Make sure your API endpoints return proper JSON responses that a React frontend can consume.`;
-
-                const backendResult = await db.execute({
-                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'BackendDev', ?)`,
-                    args: ['./', backendPrompt, repoUrl, chainId]
-                });
-                const backendId = Number(backendResult.lastInsertRowid);
-
-                // --- FrontendDev Task ---
-                const frontendPrompt = `You are a Senior Frontend Developer (React + TypeScript) in an autonomous agent team.
-
-The Lead Architect has completed the planning phase. Here is the architecture plan:
-${architectPlan}
-
-Read the ARCHITECTURE.md file in the repository for the full plan.
-
-YOUR JOB - FRONTEND ONLY:
-1. Implement the COMPLETE frontend according to the Architect's plan.
-2. Set up a React + TypeScript + Vite frontend in the apps/web directory.
-3. Create ALL UI components specified in the architecture - make them beautiful and modern.
-4. Implement client-side state management as needed (React Context, zustand, etc.).
-5. Connect to the backend API endpoints defined in the architecture using fetch/axios.
-6. Style with modern CSS (Tailwind, CSS modules, or styled-components) - make it look premium.
-7. Install all frontend dependencies.
-8. Verify the frontend builds: npx vite build
-
-CRITICAL RULES:
-- Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic login page.
-- Build the MAIN FEATURE of the app first (e.g. chess board, game view, dashboard). Do NOT start with a login/register page unless ARCHITECTURE.md explicitly requires authentication.
-- Do NOT write any backend/Express/API code. Another agent handles the backend.
-- Focus 100% on frontend quality: responsive design, animations, loading states, error handling.
-- The API base URL should be configurable (e.g. via .env or a constant).`;
-
-                const frontendResult = await db.execute({
-                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'FrontendDev', ?)`,
-                    args: ['./', frontendPrompt, repoUrl, chainId]
-                });
-                const frontendId = Number(frontendResult.lastInsertRowid);
-
-                log.info(`[CloudWorker] Auto-chained BackendDev #${backendId} + FrontendDev #${frontendId} (parallel)`);
-                await sendTelegramNotification(`[Auto-Chain] 2 parallele Tasks erstellt:\n- BackendDev #${backendId} (Server + API)\n- FrontendDev #${frontendId} (React UI)\nBeide arbeiten gleichzeitig!`);
-
-            } else if ((taskRole === 'BackendDev' || taskRole === 'FrontendDev') && chainId) {
-                // One of the parallel devs finished. Check if the OTHER one is also done.
-                const otherRole = taskRole === 'BackendDev' ? 'FrontendDev' : 'BackendDev';
-                log.info(`[CloudWorker] ${taskRole} completed. Checking if ${otherRole} is also done...`);
-
-                const otherResult = await db.execute({
-                    sql: `SELECT status FROM antigravity_tasks WHERE chain_id = ? AND role = ? ORDER BY created_at DESC LIMIT 1`,
-                    args: [chainId, otherRole]
-                });
-
-                if (otherResult.rows.length > 0 && otherResult.rows[0].status === 'completed') {
-                    // BOTH devs are done! Create the Reviewer
-                    log.info(`[CloudWorker] Both BackendDev and FrontendDev completed! Auto-chaining Reviewer...`);
-
-                    let allChanges = '';
-                    try {
-                        const { stdout } = await execPromise(`git log --oneline -5 && git diff HEAD~1 --stat`, { cwd: cloneDir });
-                        allChanges = stdout.substring(0, 3000);
-                    } catch { allChanges = 'See repository for all changes.'; }
-
-                    const reviewPrompt = `You are a strict QA Reviewer and Security Auditor in an autonomous agent team.
-
-Two developers (Backend + Frontend) have just finished implementing the project independently.
-Here is a summary of recent changes:
-${allChanges}
-
-YOUR JOB:
-1. Review ALL code files (both backend AND frontend) for bugs, security issues, and best practices.
-2. Make sure the backend API and frontend are properly integrated (correct API URLs, CORS, auth headers).
-3. Run the test suite if it exists (npm test).
-4. Verify both backend and frontend compile: npx tsc, npx vite build.
-5. Fix any critical bugs you find directly in the code.
-6. Ensure a complete README.md exists with setup instructions for BOTH backend and frontend.
-7. If there are integration issues between backend and frontend, fix them.`;
-
-                    const reviewResult = await db.execute({
-                        sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Reviewer', ?)`,
-                        args: ['./', reviewPrompt, repoUrl, chainId]
-                    });
-                    const reviewId = Number(reviewResult.lastInsertRowid);
-                    log.info(`[CloudWorker] Auto-chained Reviewer as DB task #${reviewId}`);
-                    await sendTelegramNotification(`[Auto-Chain] Beide Devs fertig! Reviewer-Task #${reviewId} erstellt. Der Reviewer prueft jetzt den gesamten Code!`);
-                } else {
-                    log.info(`[CloudWorker] ${otherRole} is not yet completed. Waiting for it to finish before creating Reviewer.`);
-                    await sendTelegramNotification(`[Auto-Chain] ${taskRole} ist fertig! Warte auf ${otherRole}...`);
-                }
-
-            } else if (taskRole === 'Reviewer' && chainId) {
-                log.info(`[CloudWorker] Reviewer completed. Pipeline for chain ${chainId} is DONE!`);
-                await sendTelegramNotification(`Pipeline komplett! Alle 4 Agenten (Architect, BackendDev, FrontendDev, Reviewer) haben das Projekt erfolgreich abgeschlossen! Repo: https://github.com/${repoUrl.replace('.git', '')}`);
-            }
-
-            // 5. Deploy to Netlify (non-blocking, fire-and-forget)
-            // Only attempt for repos that have a frontend build
+            // 4. Deploy to Netlify (non-blocking)
             deployToNetlify(cloneDir).then(url => {
                 if (url) sendTelegramNotification(`Live Vorschau: ${url}`);
             }).catch(() => { });
 
+            await db.execute({
+                sql: `UPDATE antigravity_tasks SET status = 'completed' WHERE id = ?`,
+                args: [id]
+            });
+
+            log.info(`[CloudWorker] Successfully completed task #${id}`);
+
             // Send completion message directly to Telegram
-            let text = `Aufgabe #${id} erledigt! Dein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
+            let text = `✅ Aufgabe #${id} erledigt! Dein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
             if (changesPushed) {
                 text += ` Der Code wurde vollstaendig auf GitHub gepusht!`;
             } else {
