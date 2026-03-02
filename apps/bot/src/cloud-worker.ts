@@ -456,17 +456,19 @@ async function startWorker() {
             await sendTelegramNotification(`🔄 **Aufgabe #${id} in Bearbeitung!**\n\nDer Cloud Worker bereitet den Workspace für das Repository \`${repoUrl}\` vor...`);
             await setupWorkspace(repoUrl, cloneDir);
 
-            // Determine the relative path for Codex to operate in.
-            // If the repository has a monorepo structure with apps/web, target that specifically.
+            // Determine the relative path for Codex to operate in (role-aware).
             let relativePath = "";
-            if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
+            if (taskRole === 'FrontendDev' && fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
+                // FrontendDev works in apps/web specifically
                 relativePath = "apps/web";
-            } else if (fs.existsSync(path.join(cloneDir, "apps/bot/package.json")) && repoUrl.includes("gravity-claw")) {
-                // Legacy fallback: if modifying gravity-claw backend specifically
+            } else if (repoUrl.includes("gravity-claw")) {
+                // Legacy: gravity-claw backend modifications
                 if (rawProjectPath.includes("apps/bot") || rawProjectPath.includes("apps\\bot")) {
                     relativePath = "apps/bot";
                 }
             }
+            // Architect, BackendDev, and Reviewer always work in repo ROOT
+            // so they can see ARCHITECTURE.md and the full project structure
 
             // 2. Run Codex
             await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern (ETA: ca. 5 bis 15 Minuten).`);
@@ -479,11 +481,21 @@ async function startWorker() {
             // This MUST run before Netlify deploy to avoid blocking the pipeline
             if (taskRole === 'Architect' && chainId) {
                 log.info(`[CloudWorker] Architect completed. Creating parallel BackendDev + FrontendDev tasks...`);
+
+                // Read the Architect's plan directly from ARCHITECTURE.md (much better than git diff stat)
                 let architectPlan = '';
-                try {
-                    const { stdout } = await execPromise(`git log --oneline -1 --format="%B" && git diff HEAD~1 --stat`, { cwd: cloneDir });
-                    architectPlan = stdout.substring(0, 3000);
-                } catch { architectPlan = 'See repository for Architect output.'; }
+                const archMdPath = path.join(cloneDir, 'ARCHITECTURE.md');
+                if (fs.existsSync(archMdPath)) {
+                    architectPlan = fs.readFileSync(archMdPath, 'utf-8').substring(0, 5000);
+                    log.info(`[CloudWorker] Read ARCHITECTURE.md (${architectPlan.length} chars)`);
+                } else {
+                    // Fallback: try git diff for the plan
+                    try {
+                        const { stdout } = await execPromise(`git log --oneline -1 --format="%B" && git diff HEAD~1`, { cwd: cloneDir });
+                        architectPlan = stdout.substring(0, 5000);
+                    } catch { architectPlan = 'Check the repository files for the architecture plan.'; }
+                    log.warn(`[CloudWorker] No ARCHITECTURE.md found, using git diff as fallback`);
+                }
 
                 // --- BackendDev Task ---
                 const backendPrompt = `You are a Senior Backend Developer in an autonomous agent team.
