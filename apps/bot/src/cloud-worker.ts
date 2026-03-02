@@ -433,11 +433,8 @@ async function startWorker() {
             // 3. Push back to GitHub
             const changesPushed = await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
 
-            // 4. Deploy to Netlify (if applicable)
-            // Even if no changes were pushed to github this run, the user might have provided missing credentials now, so we can still attempt a deploy
-            const deployedUrl = await deployToNetlify(cloneDir);
-
-            // AUTO-CHAIN: DB-driven pipeline (Architect -> Developer -> Reviewer)
+            // 4. AUTO-CHAIN: DB-driven pipeline (Architect -> Developer -> Reviewer)
+            // This MUST run before Netlify deploy to avoid blocking the pipeline
             if (taskRole === 'Architect' && chainId) {
                 log.info(`[CloudWorker] Architect completed. Auto-chaining Developer task...`);
                 let architectPlan = '';
@@ -502,16 +499,18 @@ YOUR JOB:
                 await sendTelegramNotification(`Pipeline komplett! Alle 3 Agenten (Architect, Developer, Reviewer) haben das Projekt erfolgreich abgeschlossen! Repo: https://github.com/${repoUrl.replace('.git', '')}`);
             }
 
-            // Send completion message directly to Telegram
-            let text = `✅ **Aufgabe #${id} erledigt!**\n\nDein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
-            if (changesPushed) {
-                text += ` Der Code wurde vollständig auf GitHub gepusht! 🚀`;
-            } else {
-                text += ` Es waren keine Code-Änderungen an diesem Repository nötig.`;
-            }
+            // 5. Deploy to Netlify (non-blocking, fire-and-forget)
+            // Only attempt for repos that have a frontend build
+            deployToNetlify(cloneDir).then(url => {
+                if (url) sendTelegramNotification(`Live Vorschau: ${url}`);
+            }).catch(() => { });
 
-            if (deployedUrl) {
-                text += `\n\n🌐 **Live Vorschau:** [Gravity Claw Dev](${deployedUrl})`;
+            // Send completion message directly to Telegram
+            let text = `Aufgabe #${id} erledigt! Dein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
+            if (changesPushed) {
+                text += ` Der Code wurde vollstaendig auf GitHub gepusht!`;
+            } else {
+                text += ` Es waren keine Code-Aenderungen an diesem Repository noetig.`;
             }
 
             await sendTelegramNotification(text);
