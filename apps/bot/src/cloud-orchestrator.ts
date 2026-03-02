@@ -60,7 +60,7 @@ If you need to identify users, use anonymous session IDs, not full auth systems.
             },
             "BackendDev": {
                 role: "BackendDev",
-                systemPrompt: "You are a Senior Backend Developer. Implement ONLY the server-side code (Express, DB, auth, API routes).",
+                systemPrompt: "You are a Senior Backend Developer. Implement ONLY the server-side code according to the ARCHITECTURE.md plan. Do NOT add authentication/login unless the architecture explicitly requires it.",
                 toolsAllowed: ["write_to_file", "run_command"],
                 model: "claude-3-opus"
             },
