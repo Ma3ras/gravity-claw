@@ -333,7 +333,7 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         await sendTelegramNotification(`Baue Frontend fuer Netlify...`);
 
         // Helper: exec with timeout and CI=true to prevent any interactive prompts
-        const ciEnv = { ...process.env, CI: 'true', NODE_ENV: 'production' };
+        const ciEnv = { ...process.env, CI: 'true' };
 
         const execWithTimeout = (cmd: string, cwd: string, timeoutMs = 90000): Promise<{ stdout: string; stderr: string }> => {
             return new Promise((resolve, reject) => {
