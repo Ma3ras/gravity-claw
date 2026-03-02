@@ -306,13 +306,16 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
     }
 
     try {
-        // Find the frontend directory
+        // Find the frontend directory - prioritize apps/web (monorepo frontend) over root
         let frontendDir = cloneDir;
         let pjsonPath = path.join(cloneDir, "package.json");
 
-        if (!fs.existsSync(pjsonPath) && fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
+        // Check for monorepo web frontend first (apps/web takes priority)
+        const webPjsonPath = path.join(cloneDir, "apps/web/package.json");
+        if (fs.existsSync(webPjsonPath)) {
             frontendDir = path.join(cloneDir, "apps/web");
-            pjsonPath = path.join(frontendDir, "package.json");
+            pjsonPath = webPjsonPath;
+            log.info(`[CloudWorker] Found monorepo frontend at apps/web`);
         }
 
         if (!fs.existsSync(pjsonPath)) {
