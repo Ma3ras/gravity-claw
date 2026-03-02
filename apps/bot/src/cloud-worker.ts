@@ -323,24 +323,41 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         }
 
         log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
-        await sendTelegramNotification(`🏗️ **Baue Frontend für Netlify...**`);
+        await sendTelegramNotification(`Baue Frontend fuer Netlify...`);
 
-        await execPromise("npm install", { cwd: frontendDir });
-        await execPromise("npm run build", { cwd: frontendDir });
+        // Use a timeout to prevent hanging on npm install/build (60 seconds max each)
+        const execWithTimeout = (cmd: string, opts: any, timeoutMs = 60000): Promise<any> => {
+            return new Promise((resolve, reject) => {
+                const child = require('child_process').exec(cmd, opts, (error: any, stdout: string, stderr: string) => {
+                    if (error) reject(error);
+                    else resolve({ stdout, stderr });
+                });
+                const timer = setTimeout(() => {
+                    child.kill('SIGTERM');
+                    reject(new Error(`Command timed out after ${timeoutMs}ms: ${cmd}`));
+                }, timeoutMs);
+                child.on('exit', () => clearTimeout(timer));
+            });
+        };
+
+        log.info(`[CloudWorker] Running npm install in ${frontendDir}...`);
+        await execWithTimeout("npm install", { cwd: frontendDir }, 90000);
+        log.info(`[CloudWorker] npm install done. Running npm run build...`);
+        await execWithTimeout("npm run build", { cwd: frontendDir }, 90000);
 
         const distDir = fs.existsSync(path.join(frontendDir, "dist")) ? "dist" : (fs.existsSync(path.join(frontendDir, "build")) ? "build" : ".");
 
         log.info(`[CloudWorker] Deploying ${distDir} to Netlify...`);
-        await execPromise(`npx netlify deploy --prod --dir=${distDir}`, {
+        await execWithTimeout(`npx netlify deploy --prod --dir=${distDir}`, {
             cwd: frontendDir,
             env: { ...process.env }
-        });
+        }, 60000);
 
         log.info("[CloudWorker] Netlify deployment successful.");
         return "https://gravity-claw-dev.netlify.app";
     } catch (e: any) {
         log.error("[CloudWorker] Netlify deployment failed", { error: String(e) });
-        await sendTelegramNotification(`⚠️ **Netlify Deployment fehlgeschlagen:**\n\n\`\`\`\n${e.message}\n\`\`\``);
+        await sendTelegramNotification(`Netlify Deployment fehlgeschlagen: ${e.message?.substring(0, 300)}`);
         return null;
     }
 }
