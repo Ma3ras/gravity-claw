@@ -27,12 +27,31 @@ export class Orchestrator {
         const initialState: TaskState = {
             id: randomUUID(),
             globalObjective,
-            subtasks: [],
+            subtasks: [
+                {
+                    id: randomUUID(),
+                    description: "Plan the architecture and break down the global objective into specific requirements for the Developer and Reviewer.",
+                    assignedRole: "Architect",
+                    status: "in_progress"
+                },
+                {
+                    id: randomUUID(),
+                    description: "Awaiting Architect's plan. Once the plan is ready, implement the codebase according to the Architect's design.",
+                    assignedRole: "Developer",
+                    status: "pending"
+                },
+                {
+                    id: randomUUID(),
+                    description: "Awaiting Developer's implementation. Once the code is written, review the code, test it, and write the README documentation.",
+                    assignedRole: "Reviewer",
+                    status: "pending"
+                }
+            ],
             activeAgents: [],
             logs: [{
                 timestamp: Date.now(),
                 agentRole: 'Orchestrator',
-                message: 'Project initialized',
+                message: 'Project initialized with pre-seeded Team subtasks',
                 type: 'info'
             }],
             status: 'pending',
@@ -75,19 +94,22 @@ export class Orchestrator {
                 state.activeAgents.push(role);
             }
         });
-
         // Get the specific subtask so we can send its description
         const state = await this.stateManager.readState();
-        const subtask = state?.subtasks.find(t => t.id === taskId);
 
-        // If this is the initial Architect spawn, make a dummy subtask from global objective
-        const passTask: Subtask = subtask || {
-            id: taskId,
-            description: state?.globalObjective || "Plan the project",
-            status: 'in_progress'
-        };
+        // Find the specific task using the ID, or if this is the initial Architect spawn, grab the 'Architect' task.
+        let subtask = state?.subtasks.find(t => t.id === taskId);
 
-        const dbTaskId = await spawnAgent(agentConfig, this.config.workspacePath, passTask, this.config.repoUrl, this.config.db);
+        if (!subtask && role === 'Architect') {
+            subtask = state?.subtasks.find(t => t.assignedRole === 'Architect');
+        }
+
+        if (!subtask) {
+            console.error(`[Orchestrator] Could not find subtask ${taskId} to spawn role ${role}`);
+            return;
+        }
+
+        const dbTaskId = await spawnAgent(agentConfig, this.config.workspacePath, subtask, this.config.repoUrl, this.config.db);
 
         // Store the DB task ID in the state file so we can track it
         if (subtask) {
