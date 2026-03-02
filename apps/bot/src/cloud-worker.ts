@@ -158,12 +158,18 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boo
             log.warn(`[CloudWorker] Rebase failed, probably a completely empty repo. Skipping rebase.`);
         }
 
-        // Try pushing to main (modern default), fallback to master
+        // Detect the actual local branch name and push to it
+        let branchName = 'main';
         try {
-            await execPromise(`git push origin main`, { cwd: cloneDir });
+            const { stdout: branch } = await execPromise(`git rev-parse --abbrev-ref HEAD`, { cwd: cloneDir });
+            branchName = branch.trim() || 'main';
+        } catch { /* default to main */ }
+
+        try {
+            await execPromise(`git push origin ${branchName}`, { cwd: cloneDir });
         } catch (e1) {
-            log.warn(`[CloudWorker] Failed to push to main, trying master...`);
-            await execPromise(`git push origin master`, { cwd: cloneDir });
+            log.warn(`[CloudWorker] Failed to push to ${branchName}, trying HEAD...`);
+            await execPromise(`git push origin HEAD`, { cwd: cloneDir });
         }
         log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         return true;
@@ -516,6 +522,7 @@ YOUR JOB - BACKEND ONLY:
 
 CRITICAL RULES:
 - Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic auth system.
+- Do NOT add user registration/login/JWT authentication UNLESS the ARCHITECTURE.md explicitly requires it.
 - Do NOT touch any frontend/React code. Another agent handles the frontend.
 - Focus 100% on backend quality: clean code, proper error responses, best practices.
 - Make sure your API endpoints return proper JSON responses that a React frontend can consume.`;
@@ -546,6 +553,7 @@ YOUR JOB - FRONTEND ONLY:
 
 CRITICAL RULES:
 - Follow the Architect's plan EXACTLY. Build what THEY specified, not a generic login page.
+- Build the MAIN FEATURE of the app first (e.g. chess board, game view, dashboard). Do NOT start with a login/register page unless ARCHITECTURE.md explicitly requires authentication.
 - Do NOT write any backend/Express/API code. Another agent handles the backend.
 - Focus 100% on frontend quality: responsive design, animations, loading states, error handling.
 - The API base URL should be configurable (e.g. via .env or a constant).`;
