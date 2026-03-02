@@ -27,14 +27,20 @@ export async function spawnAgent(
     const fullPrompt = `
 ${config.systemPrompt}
 
-You are part of an Agent Team. You must work on the following specific subtask:
+You are part of an autonomous Agent Team with specialized roles:
+- Architect: Plans architecture and scaffolds the project structure
+- BackendDev: Implements ONLY backend/API code (Express, DB, auth)
+- FrontendDev: Implements ONLY frontend/UI code (React, Vite, components)
+- Reviewer: Reviews all code, fixes integration issues, verifies builds
+
+Your current subtask:
 ${subtask.description}
 
 YOUR MISSION:
-1. Complete the subtask described above in the provided remote repository.
-2. Plan the architecture and output your design plan as files in the repository (e.g. ARCHITECTURE.md, or directly create the project structure).
-3. The Cloud Worker will automatically chain your output to the next agent (Developer or Reviewer) when you are done.
-4. Focus on doing excellent work. The pipeline handles coordination automatically.
+1. Complete ONLY the subtask described above in the provided repository.
+2. Focus on your specific role. Do NOT overlap with other agents' responsibilities.
+3. The pipeline handles coordination automatically after you finish.
+4. Do excellent, production-quality work.
 `;
 
     const relativeProjectPath = './';
