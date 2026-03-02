@@ -5,7 +5,7 @@ triggers: ui, ux, design, frontend, landing page, dashboard, website, web app, s
 ---
 # UI/UX Pro Max - Design Intelligence
 
-Comprehensive design guide with 68 UI styles, 100 industry reasoning rules, UX guidelines, and pre-delivery checklist.
+Comprehensive design guide with 68 UI styles, 100 industry reasoning rules, 96 color palettes, 57 font pairings, 30 landing page patterns, 100 icon imports, UX guidelines, and pre-delivery checklist.
 Apply these rules when building ANY user-facing interface via `create_antigravity_task`.
 
 ## When to Apply
@@ -321,6 +321,365 @@ Each rule maps: Industry → Pattern, Style, Colors, Typography, Effects, Decisi
 | Floating navbar: `top-4 left-4 right-4` | Stick navbar to `top-0 left-0 right-0` |
 | Account for fixed navbar height | Content hidden behind fixed elements |
 | Consistent `max-w-6xl` or `max-w-7xl` | Mixed container widths |
+
+---
+
+## 96 COLOR PALETTES BY PRODUCT TYPE
+
+Exact hex codes: Primary, Secondary, CTA, Background, Text, Border per industry.
+
+| # | Product Type | Primary | Secondary | CTA | Background | Text | Border | Notes |
+|---|-------------|---------|-----------|-----|------------|------|--------|-------|
+| 1 | SaaS (General) | #2563EB | #3B82F6 | #F97316 | #F8FAFC | #1E293B | #E2E8F0 | Trust blue + orange CTA |
+| 2 | Micro SaaS | #6366F1 | #818CF8 | #10B981 | #F5F3FF | #1E1B4B | #E0E7FF | Indigo + emerald CTA |
+| 3 | E-commerce | #059669 | #10B981 | #F97316 | #ECFDF5 | #064E3B | #A7F3D0 | Success green + urgency orange |
+| 4 | E-commerce Luxury | #1C1917 | #44403C | #CA8A04 | #FAFAF9 | #0C0A09 | #D6D3D1 | Premium dark + gold |
+| 5 | Service Landing | #0EA5E9 | #38BDF8 | #F97316 | #F0F9FF | #0C4A6E | #BAE6FD | Sky blue + warm CTA |
+| 6 | B2B Service | #0F172A | #334155 | #0369A1 | #F8FAFC | #020617 | #E2E8F0 | Professional navy |
+| 7 | Financial Dashboard | #0F172A | #1E293B | #22C55E | #020617 | #F8FAFC | #334155 | Dark + green indicators |
+| 8 | Analytics Dashboard | #1E40AF | #3B82F6 | #F59E0B | #F8FAFC | #1E3A8A | #DBEAFE | Blue + amber highlights |
+| 9 | Healthcare App | #0891B2 | #22D3EE | #059669 | #ECFEFF | #164E63 | #A5F3FC | Calm cyan + health green |
+| 10 | Educational App | #4F46E5 | #818CF8 | #F97316 | #EEF2FF | #1E1B4B | #C7D2FE | Playful indigo + orange |
+| 11 | Creative Agency | #EC4899 | #F472B6 | #06B6D4 | #FDF2F8 | #831843 | #FBCFE8 | Bold pink + cyan |
+| 12 | Portfolio/Personal | #18181B | #3F3F46 | #2563EB | #FAFAFA | #09090B | #E4E4E7 | Mono + blue accent |
+| 13 | Gaming | #7C3AED | #A78BFA | #F43F5E | #0F0F23 | #E2E8F0 | #4C1D95 | Neon purple + rose |
+| 14 | Government/Public | #0F172A | #334155 | #0369A1 | #F8FAFC | #020617 | #E2E8F0 | High contrast navy |
+| 15 | Fintech/Crypto | #F59E0B | #FBBF24 | #8B5CF6 | #0F172A | #F8FAFC | #334155 | Gold + purple tech |
+| 16 | Social Media | #E11D48 | #FB7185 | #2563EB | #FFF1F2 | #881337 | #FECDD3 | Rose + blue |
+| 17 | Productivity Tool | #0D9488 | #14B8A6 | #F97316 | #F0FDFA | #134E4A | #99F6E4 | Teal + action orange |
+| 18 | Design System | #4F46E5 | #6366F1 | #F97316 | #EEF2FF | #312E81 | #C7D2FE | Indigo + doc hierarchy |
+| 19 | AI/Chatbot | #7C3AED | #A78BFA | #06B6D4 | #FAF5FF | #1E1B4B | #DDD6FE | AI purple + cyan |
+| 20 | NFT/Web3 | #8B5CF6 | #A78BFA | #FBBF24 | #0F0F23 | #F8FAFC | #4C1D95 | Purple + gold |
+| 21 | Creator Economy | #EC4899 | #F472B6 | #F97316 | #FDF2F8 | #831843 | #FBCFE8 | Pink + orange |
+| 22 | Sustainability/ESG | #059669 | #10B981 | #0891B2 | #ECFDF5 | #064E3B | #A7F3D0 | Nature green + ocean |
+| 23 | Remote Work | #6366F1 | #818CF8 | #10B981 | #F5F3FF | #312E81 | #E0E7FF | Calm indigo + green |
+| 24 | Mental Health | #8B5CF6 | #C4B5FD | #10B981 | #FAF5FF | #4C1D95 | #EDE9FE | Calming lavender |
+| 25 | Pet Tech | #F97316 | #FB923C | #2563EB | #FFF7ED | #9A3412 | #FED7AA | Playful orange |
+| 26 | Smart Home/IoT | #1E293B | #334155 | #22C55E | #0F172A | #F8FAFC | #475569 | Dark tech + green |
+| 27 | EV/Charging | #0891B2 | #22D3EE | #22C55E | #ECFEFF | #164E63 | #A5F3FC | Electric cyan |
+| 28 | Subscription Box | #D946EF | #E879F9 | #F97316 | #FDF4FF | #86198F | #F5D0FE | Excitement purple |
+| 29 | Podcast | #1E1B4B | #312E81 | #F97316 | #0F0F23 | #F8FAFC | #4338CA | Dark audio |
+| 30 | Dating App | #E11D48 | #FB7185 | #F97316 | #FFF1F2 | #881337 | #FECDD3 | Romantic rose |
+| 31 | Micro-Credentials | #0369A1 | #0EA5E9 | #CA8A04 | #F0F9FF | #0C4A6E | #BAE6FD | Trust blue + gold |
+| 32 | Knowledge Base | #475569 | #64748B | #2563EB | #F8FAFC | #1E293B | #E2E8F0 | Neutral grey |
+| 33 | Hyperlocal Services | #059669 | #10B981 | #F97316 | #ECFDF5 | #064E3B | #A7F3D0 | Location green |
+| 34 | Beauty/Spa | #EC4899 | #F9A8D4 | #8B5CF6 | #FDF2F8 | #831843 | #FBCFE8 | Soft pink + lavender |
+| 35 | Luxury/Premium | #1C1917 | #44403C | #CA8A04 | #FAFAF9 | #0C0A09 | #D6D3D1 | Black + gold |
+| 36 | Restaurant/Food | #DC2626 | #F87171 | #CA8A04 | #FEF2F2 | #450A0A | #FECACA | Red + warm gold |
+| 37 | Fitness/Gym | #F97316 | #FB923C | #22C55E | #1F2937 | #F8FAFC | #374151 | Energy orange + green |
+| 38 | Real Estate | #0F766E | #14B8A6 | #0369A1 | #F0FDFA | #134E4A | #99F6E4 | Trust teal + blue |
+| 39 | Travel/Tourism | #0EA5E9 | #38BDF8 | #F97316 | #F0F9FF | #0C4A6E | #BAE6FD | Sky blue + adventure |
+| 40 | Hotel/Hospitality | #1E3A8A | #3B82F6 | #CA8A04 | #F8FAFC | #1E40AF | #BFDBFE | Luxury navy + gold |
+| 41 | Wedding/Event | #DB2777 | #F472B6 | #CA8A04 | #FDF2F8 | #831843 | #FBCFE8 | Romantic pink + gold |
+| 42 | Legal Services | #1E3A8A | #1E40AF | #B45309 | #F8FAFC | #0F172A | #CBD5E1 | Authority navy |
+| 43 | Insurance | #0369A1 | #0EA5E9 | #22C55E | #F0F9FF | #0C4A6E | #BAE6FD | Security blue + green |
+| 44 | Banking | #0F172A | #1E3A8A | #CA8A04 | #F8FAFC | #020617 | #E2E8F0 | Trust navy + gold |
+| 45 | Online Course | #0D9488 | #2DD4BF | #F97316 | #F0FDFA | #134E4A | #5EEAD4 | Progress teal |
+| 46 | Non-profit | #0891B2 | #22D3EE | #F97316 | #ECFEFF | #164E63 | #A5F3FC | Compassion blue |
+| 47 | Music Streaming | #1E1B4B | #4338CA | #22C55E | #0F0F23 | #F8FAFC | #312E81 | Dark audio + green |
+| 48 | Video Streaming | #0F0F23 | #1E1B4B | #E11D48 | #000000 | #F8FAFC | #312E81 | Cinema dark + red |
+| 49 | Job Board | #0369A1 | #0EA5E9 | #22C55E | #F0F9FF | #0C4A6E | #BAE6FD | Professional blue |
+| 50 | Marketplace (P2P) | #7C3AED | #A78BFA | #22C55E | #FAF5FF | #4C1D95 | #DDD6FE | Trust purple + green |
+| 51 | Logistics/Delivery | #2563EB | #3B82F6 | #F97316 | #EFF6FF | #1E40AF | #BFDBFE | Tracking blue + orange |
+| 52 | Agriculture | #15803D | #22C55E | #CA8A04 | #F0FDF4 | #14532D | #BBF7D0 | Earth green + gold |
+| 53 | Construction | #64748B | #94A3B8 | #F97316 | #F8FAFC | #334155 | #E2E8F0 | Industrial grey |
+| 54 | Automotive | #1E293B | #334155 | #DC2626 | #F8FAFC | #0F172A | #E2E8F0 | Premium dark + red |
+| 55 | Photography | #18181B | #27272A | #F8FAFC | #000000 | #FAFAFA | #3F3F46 | Pure black + white |
+| 56 | Coworking | #F59E0B | #FBBF24 | #2563EB | #FFFBEB | #78350F | #FDE68A | Amber + booking blue |
+| 57 | Cleaning Service | #0891B2 | #22D3EE | #22C55E | #ECFEFF | #164E63 | #A5F3FC | Fresh cyan + clean |
+| 58 | Home Services | #1E40AF | #3B82F6 | #F97316 | #EFF6FF | #1E3A8A | #BFDBFE | Professional blue |
+| 59 | Childcare | #F472B6 | #FBCFE8 | #22C55E | #FDF2F8 | #9D174D | #FCE7F3 | Soft pink + safe green |
+| 60 | Senior Care | #0369A1 | #38BDF8 | #22C55E | #F0F9FF | #0C4A6E | #E0F2FE | Calm blue + reassuring |
+| 61 | Medical Clinic | #0891B2 | #22D3EE | #22C55E | #F0FDFA | #134E4A | #CCFBF1 | Medical teal |
+| 62 | Pharmacy | #15803D | #22C55E | #0369A1 | #F0FDF4 | #14532D | #BBF7D0 | Pharmacy green |
+| 63 | Dental Practice | #0EA5E9 | #38BDF8 | #FBBF24 | #F0F9FF | #0C4A6E | #BAE6FD | Fresh blue + yellow |
+| 64 | Veterinary | #0D9488 | #14B8A6 | #F97316 | #F0FDFA | #134E4A | #99F6E4 | Caring teal |
+| 65 | Florist/Plants | #15803D | #22C55E | #EC4899 | #F0FDF4 | #14532D | #BBF7D0 | Green + floral pink |
+| 66 | Bakery/Cafe | #92400E | #B45309 | #F8FAFC | #FEF3C7 | #78350F | #FDE68A | Warm brown + cream |
+| 67 | Coffee Shop | #78350F | #92400E | #FBBF24 | #FEF3C7 | #451A03 | #FDE68A | Coffee brown + gold |
+| 68 | Brewery/Winery | #7C2D12 | #B91C1C | #CA8A04 | #FEF2F2 | #450A0A | #FECACA | Burgundy + craft gold |
+| 69 | Airline | #1E3A8A | #3B82F6 | #F97316 | #EFF6FF | #1E40AF | #BFDBFE | Sky blue + booking |
+| 70 | News/Media | #DC2626 | #EF4444 | #1E40AF | #FEF2F2 | #450A0A | #FECACA | Breaking red + blue |
+| 71 | Magazine/Blog | #18181B | #3F3F46 | #EC4899 | #FAFAFA | #09090B | #E4E4E7 | Editorial black + pink |
+| 72 | Freelancer | #6366F1 | #818CF8 | #22C55E | #EEF2FF | #312E81 | #C7D2FE | Creative indigo |
+| 73 | Consulting | #0F172A | #334155 | #CA8A04 | #F8FAFC | #020617 | #E2E8F0 | Authority navy + gold |
+| 74 | Marketing Agency | #EC4899 | #F472B6 | #06B6D4 | #FDF2F8 | #831843 | #FBCFE8 | Bold pink + cyan |
+| 75 | Event Management | #7C3AED | #A78BFA | #F97316 | #FAF5FF | #4C1D95 | #DDD6FE | Excitement purple |
+| 76 | Conference | #1E40AF | #3B82F6 | #22C55E | #EFF6FF | #1E3A8A | #BFDBFE | Professional blue |
+| 77 | Membership/Community | #7C3AED | #A78BFA | #22C55E | #FAF5FF | #4C1D95 | #DDD6FE | Community purple |
+| 78 | Newsletter | #0369A1 | #0EA5E9 | #F97316 | #F0F9FF | #0C4A6E | #BAE6FD | Trust blue + subscribe |
+| 79 | Digital Products | #6366F1 | #818CF8 | #22C55E | #EEF2FF | #312E81 | #C7D2FE | Digital indigo |
+| 80 | Church/Religious | #7C3AED | #A78BFA | #CA8A04 | #FAF5FF | #4C1D95 | #DDD6FE | Spiritual purple + gold |
+| 81 | Sports Team | #DC2626 | #EF4444 | #FBBF24 | #FEF2F2 | #7F1D1D | #FECACA | Team red + gold |
+| 82 | Museum/Gallery | #18181B | #27272A | #F8FAFC | #FAFAFA | #09090B | #E4E4E7 | Gallery black + white |
+| 83 | Theater/Cinema | #1E1B4B | #312E81 | #CA8A04 | #0F0F23 | #F8FAFC | #4338CA | Dark + spotlight gold |
+| 84 | Language Learning | #4F46E5 | #818CF8 | #22C55E | #EEF2FF | #312E81 | #C7D2FE | Learning indigo |
+| 85 | Coding Bootcamp | #0F172A | #1E293B | #22C55E | #020617 | #F8FAFC | #334155 | Terminal dark + green |
+| 86 | Cybersecurity | #00FF41 | #0D0D0D | #FF3333 | #000000 | #E0E0E0 | #1F1F1F | Matrix green + red |
+| 87 | Developer Tool | #1E293B | #334155 | #22C55E | #0F172A | #F8FAFC | #475569 | Code dark + green |
+| 88 | Biotech | #0EA5E9 | #0284C7 | #10B981 | #F0F9FF | #0C4A6E | #BAE6FD | DNA blue + life green |
+| 89 | Space Tech | #F8FAFC | #94A3B8 | #3B82F6 | #0B0B10 | #F8FAFC | #1E293B | Star white + launch blue |
+| 90 | Architecture | #171717 | #404040 | #D4AF37 | #FFFFFF | #171717 | #E5E5E5 | Minimal black + gold |
+| 91 | Quantum Computing | #00FFFF | #7B61FF | #FF00FF | #050510 | #E0E0FF | #333344 | Quantum cyan + purple |
+| 92 | Biohacking | #FF4D4D | #4D94FF | #00E676 | #F5F5F7 | #1C1C1E | #E5E5EA | Bio red/blue + green |
+| 93 | Autonomous Systems | #00FF41 | #008F11 | #FF3333 | #0D1117 | #E6EDF3 | #30363D | Terminal green + red |
+| 94 | Generative AI Art | #18181B | #3F3F46 | #EC4899 | #FAFAFA | #09090B | #E4E4E7 | Canvas neutral + pink |
+| 95 | Spatial/VisionOS | #FFFFFF | #E5E5E5 | #007AFF | #888888 | #000000 | #CCCCCC | Glass white + system blue |
+| 96 | Climate Tech | #059669 | #10B981 | #FBBF24 | #ECFDF5 | #064E3B | #A7F3D0 | Nature green + solar gold |
+
+---
+
+## 57 TYPOGRAPHY PAIRINGS
+
+Font pairings with Google Fonts URLs and CSS imports, organized by mood/industry.
+
+| # | Name | Category | Heading | Body | Best For | CSS Import |
+|---|------|----------|---------|------|----------|------------|
+| 1 | Classic Elegant | Serif+Sans | Playfair Display | Inter | Luxury, fashion, spa, editorial | `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap')` |
+| 2 | Modern Professional | Sans+Sans | Poppins | Open Sans | SaaS, corporate, startups | `@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap')` |
+| 3 | Tech Startup | Sans+Sans | Space Grotesk | DM Sans | Tech, SaaS, developer tools, AI | `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap')` |
+| 4 | Editorial Classic | Serif+Serif | Cormorant Garamond | Libre Baskerville | Publishing, blogs, news, literary | `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap')` |
+| 5 | Minimal Swiss | Sans+Sans | Inter | Inter | Dashboards, admin, documentation | `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap')` |
+| 6 | Playful Creative | Display+Sans | Fredoka | Nunito | Children's, educational, gaming | `@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap')` |
+| 7 | Bold Statement | Display+Sans | Bebas Neue | Source Sans 3 | Marketing, portfolios, agencies, sports | `@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+3:wght@300;400;500;600;700&display=swap')` |
+| 8 | Wellness Calm | Serif+Sans | Lora | Raleway | Health, wellness, spa, meditation | `@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Raleway:wght@300;400;500;600;700&display=swap')` |
+| 9 | Developer Mono | Mono+Sans | JetBrains Mono | IBM Plex Sans | Dev tools, code editors, tech blogs | `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap')` |
+| 10 | Retro Vintage | Display+Serif | Abril Fatface | Merriweather | Vintage brands, breweries, restaurants | `@import url('https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Merriweather:wght@300;400;700&display=swap')` |
+| 11 | Geometric Modern | Sans+Sans | Outfit | Work Sans | Portfolios, agencies, modern brands | `@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600;700&display=swap')` |
+| 12 | Luxury Serif | Serif+Sans | Cormorant | Montserrat | Fashion, luxury, jewelry | `@import url('https://fonts.googleapis.com/css2?family=Cormorant:wght@400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap')` |
+| 13 | Friendly SaaS | Sans+Sans | Plus Jakarta Sans | Plus Jakarta Sans | SaaS, web apps, dashboards, B2B | `@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap')` |
+| 14 | News Editorial | Serif+Sans | Newsreader | Roboto | News sites, blogs, journalism | `@import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap')` |
+| 15 | Handwritten Charm | Script+Sans | Caveat | Quicksand | Personal blogs, invitations, lifestyle | `@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Quicksand:wght@300;400;500;600;700&display=swap')` |
+| 16 | Corporate Trust | Sans+Sans | Lexend | Source Sans 3 | Enterprise, government, healthcare | `@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap')` |
+| 17 | Brutalist Raw | Mono+Mono | Space Mono | Space Mono | Brutalist, developer portfolios | `@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap')` |
+| 18 | Fashion Forward | Sans+Sans | Syne | Manrope | Fashion, creative agencies, galleries | `@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700&display=swap')` |
+| 19 | Soft Rounded | Sans+Sans | Varela Round | Nunito Sans | Children's, pet apps, wellness | `@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Varela+Round&display=swap')` |
+| 20 | Premium Sans | Sans+Sans | DM Sans | DM Sans | Premium brands, agencies, startups | `@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap')` |
+| 21 | Vietnamese | Sans+Sans | Be Vietnam Pro | Noto Sans | Vietnamese sites, multilingual | `@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;600;700&display=swap')` |
+| 22 | Japanese | Serif+Sans | Noto Serif JP | Noto Sans JP | Japanese sites, cultural content | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;500;600;700&display=swap')` |
+| 23 | Korean | Sans+Sans | Noto Sans KR | Noto Sans KR | Korean sites, K-beauty, K-pop | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap')` |
+| 24 | Chinese Traditional | Serif+Sans | Noto Serif TC | Noto Sans TC | Taiwan/HK markets | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Noto+Serif+TC:wght@400;500;600;700&display=swap')` |
+| 25 | Chinese Simplified | Sans+Sans | Noto Sans SC | Noto Sans SC | Mainland China | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap')` |
+| 26 | Arabic | Serif+Sans | Noto Naskh Arabic | Noto Sans Arabic | Arabic/Middle East (RTL) | `@import url('https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@300;400;500;700&display=swap')` |
+| 27 | Thai | Sans+Sans | Noto Sans Thai | Noto Sans Thai | Thai sites, SE Asia | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;700&display=swap')` |
+| 28 | Hebrew | Sans+Sans | Noto Sans Hebrew | Noto Sans Hebrew | Hebrew/Israeli (RTL) | `@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@300;400;500;700&display=swap')` |
+| 29 | Legal Professional | Serif+Sans | EB Garamond | Lato | Law firms, contracts, government | `@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600;700&family=Lato:wght@300;400;700&display=swap')` |
+| 30 | Medical Clean | Sans+Sans | Figtree | Noto Sans | Healthcare, pharma, clinics | `@import url('https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Noto+Sans:wght@300;400;500;700&display=swap')` |
+| 31 | Financial Trust | Sans+Sans | IBM Plex Sans | IBM Plex Sans | Banks, finance, insurance | `@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap')` |
+| 32 | Real Estate Luxury | Serif+Sans | Cinzel | Josefin Sans | Real estate, architecture, luxury | `@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Josefin+Sans:wght@300;400;500;600;700&display=swap')` |
+| 33 | Restaurant Menu | Serif+Sans | Playfair Display SC | Karla | Restaurants, cafes, hospitality | `@import url('https://fonts.googleapis.com/css2?family=Karla:wght@300;400;500;600;700&family=Playfair+Display+SC:wght@400;700&display=swap')` |
+| 34 | Art Deco | Display+Sans | Poiret One | Didact Gothic | Vintage events, 1920s themes | `@import url('https://fonts.googleapis.com/css2?family=Didact+Gothic&family=Poiret+One&display=swap')` |
+| 35 | Magazine Style | Serif+Sans | Libre Bodoni | Public Sans | Magazines, editorial, journalism | `@import url('https://fonts.googleapis.com/css2?family=Libre+Bodoni:wght@400;500;600;700&family=Public+Sans:wght@300;400;500;600;700&display=swap')` |
+| 36 | Crypto/Web3 | Sans+Sans | Orbitron | Exo 2 | Crypto, NFT, blockchain, web3 | `@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700&display=swap')` |
+| 37 | Gaming Bold | Display+Sans | Russo One | Chakra Petch | Gaming, esports, action | `@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Russo+One&display=swap')` |
+| 38 | Indie/Craft | Display+Sans | Amatic SC | Cabin | Craft brands, artisan, organic | `@import url('https://fonts.googleapis.com/css2?family=Amatic+SC:wght@400;700&family=Cabin:wght@400;500;600;700&display=swap')` |
+| 39 | Startup Bold | Sans+Sans | Outfit | Rubik | Startups, pitch decks, launches | `@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap')` |
+| 40 | E-commerce Clean | Sans+Sans | Rubik | Nunito Sans | E-commerce, online stores, retail | `@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700&family=Rubik:wght@300;400;500;600;700&display=swap')` |
+| 41 | Academic/Research | Serif+Sans | Crimson Pro | Atkinson Hyperlegible | Universities, research, academic | `@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Crimson+Pro:wght@400;500;600;700&display=swap')` |
+| 42 | Dashboard Data | Mono+Sans | Fira Code | Fira Sans | Dashboards, analytics, admin | `@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap')` |
+| 43 | Music/Entertainment | Display+Sans | Righteous | Poppins | Music, entertainment, festivals | `@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap')` |
+| 44 | Minimalist Portfolio | Sans+Sans | Space Grotesk | Archivo | Design portfolios, creatives | `@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap')` |
+| 45 | Kids/Education | Display+Sans | Baloo 2 | Comic Neue | Children's apps, educational games | `@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700&family=Comic+Neue:wght@300;400;700&display=swap')` |
+| 46 | Wedding/Romance | Script+Serif | Great Vibes | Cormorant Infant | Weddings, invitations, bridal | `@import url('https://fonts.googleapis.com/css2?family=Cormorant+Infant:wght@300;400;500;600;700&family=Great+Vibes&display=swap')` |
+| 47 | Science/Tech | Sans+Mono | Exo | Roboto Mono | Science, research, data-heavy | `@import url('https://fonts.googleapis.com/css2?family=Exo:wght@300;400;500;600;700&family=Roboto+Mono:wght@300;400;500;700&display=swap')` |
+| 48 | Accessibility First | Sans+Sans | Atkinson Hyperlegible | Atkinson Hyperlegible | Government, healthcare, inclusive | `@import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap')` |
+| 49 | Sports/Fitness | Sans+Sans | Barlow Condensed | Barlow | Sports, fitness, athletic | `@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@300;400;500;600;700&display=swap')` |
+| 50 | Luxury Minimalist | Serif+Sans | Bodoni Moda | Jost | Luxury minimalist, high-end fashion | `@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@400;500;600;700&family=Jost:wght@300;400;500;600;700&display=swap')` |
+| 51 | Tech/HUD Mono | Mono+Mono | Share Tech Mono | Fira Code | Sci-fi UI, cybersecurity, dashboards | `@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap')` |
+| 52 | Pixel Retro | Display+Sans | Press Start 2P | VT323 | Pixel art games, retro websites | `@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap')` |
+| 53 | Neubrutalist Bold | Display+Sans | Lexend Mega | Public Sans | Gen Z brands, bold marketing | `@import url('https://fonts.googleapis.com/css2?family=Lexend+Mega:wght@100..900&family=Public+Sans:wght@100..900&display=swap')` |
+| 54 | Spatial Clear | Sans+Sans | Inter | Inter | Spatial computing, AR/VR, glass UI | `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap')` |
+| 55 | Kinetic Motion | Display+Mono | Syncopate | Space Mono | Music festivals, automotive | `@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syncopate:wght@400;700&display=swap')` |
+| 56 | Gen Z Brutal | Display+Sans | Anton | Epilogue | Gen Z marketing, streetwear | `@import url('https://fonts.googleapis.com/css2?family=Anton&family=Epilogue:wght@400;500;600;700&display=swap')` |
+| 57 | Academic/Archival | Serif+Serif | EB Garamond | Crimson Text | University, archives, research | `@import url('https://fonts.googleapis.com/css2?family=Crimson+Text:wght@400;600;700&family=EB+Garamond:wght@400;500;600;700;800&display=swap')` |
+
+---
+
+## 30 LANDING PAGE PATTERNS
+
+Section-by-section blueprints for landing pages. Match with reasoning rules.
+
+| # | Pattern | Section Order | CTA Placement | Key Effects | Conversion Tips |
+|---|---------|--------------|---------------|-------------|-----------------|
+| 1 | Hero + Features + CTA | Hero → Value prop → Features (3-5) → CTA → Footer | Hero (sticky) + Bottom | Parallax, card hover lift, CTA glow | Deep CTA, contrasting color 7:1, sticky navbar CTA |
+| 2 | Hero + Testimonials | Hero → Problem → Solution → Testimonials → CTA | Hero (sticky) + Post-testimonials | Carousel slide, quote marks, avatar fade | Social proof before CTA, 3-5 testimonials with photo+name |
+| 3 | Product Demo + Features | Hero → Video/mockup → Feature breakdown → Comparison → CTA | Video center + Bottom | Play button pulse, scroll reveals, demo highlights | Embedded demo increases engagement, auto-play muted |
+| 4 | Minimal Single Column | Hero headline → Description → Benefits (3 max) → CTA → Footer | Center large CTA | Minimal hover, smooth scroll, CTA scale | Single CTA focus, large typography, lots of whitespace |
+| 5 | Funnel (3-Step) | Hero → Step 1 (problem) → Step 2 (solution) → Step 3 (action) → CTA | Each step mini-CTA + Final main CTA | Step number anim, progress bar, smooth scroll | Progressive disclosure, show only essential per step |
+| 6 | Comparison Table | Hero → Problem → Comparison table → Pricing → CTA | Table right column + Below table | Row hover highlight, price toggle, checkmark anim | Highlight your product row, include free trial |
+| 7 | Lead Magnet + Form | Hero (benefit) → Lead magnet preview → Form (≤3 fields) → CTA submit | Form submit button | Form focus anim, validation anim, success confetti | ≤3 fields for best conversion, show preview |
+| 8 | Pricing Page | Hero → Price cards → Feature comparison → FAQ → Final CTA | Each card + Sticky nav + Bottom | Toggle monthly/yearly, card hover, accordion | Recommend mid-tier, annual discount 20-30% |
+| 9 | Video-First Hero | Hero with video bg → Features overlay → Benefits → CTA | Overlay on video + Bottom | Video autoplay muted, parallax, text fade-in | 86% higher engagement, add captions, compress |
+| 10 | Scroll Storytelling | Intro hook → Chapter 1 (problem) → Chapter 2 (journey) → Chapter 3 (solution) → CTA | End of chapters + Final climax | ScrollTrigger, parallax layers, progressive disclosure | 3x time-on-page, progress indicator, simplify mobile |
+| 11 | AI Personalization | Dynamic hero → Relevant features → Tailored testimonials → Smart CTA | Context-aware placement | Dynamic content swap, fade transitions | 20%+ conversion, requires analytics, fallback for new users |
+| 12 | Waitlist/Coming Soon | Hero + countdown → Product teaser → Email capture → Social proof (count) | Email form prominent + Sticky | Countdown timer, email validation, confetti | Scarcity + exclusivity, show waitlist count |
+| 13 | Comparison Focus | Hero (problem) → Comparison matrix → Feature deep-dive → Winner CTA | After comparison + Bottom | Row hover, checkmark anim, sticky header | 35% higher conversion, be factual |
+| 14 | Pricing-Focused | Hero (value prop) → Pricing cards (3 tiers) → Features → FAQ → CTA | Each card + Sticky nav + Bottom | Price toggle, card hover, FAQ accordion | Annual discount, popular badge on mid-tier |
+| 15 | App Store Style | Hero + device mockup → Screenshots → Features → Reviews → Download CTAs | Download buttons throughout | Device rotation, screenshot slider, star rating | Real screenshots, 4.5+ stars, QR code |
+| 16 | FAQ/Documentation | Hero + search bar → Categories → FAQ accordion → Contact CTA | Search bar + Contact for unresolved | Search autocomplete, accordion, helpful feedback | Reduce support tickets, track search analytics |
+| 17 | Immersive/Interactive | Full-screen interactive → Guided tour → Benefits → CTA after completion | After interaction + Skip option | WebGL, 3D, gamification, progress, reward anim | 40% higher engagement, provide skip, mobile fallback |
+| 18 | Event/Conference | Hero (date/location/countdown) → Speakers → Agenda → Sponsors → Register | Register sticky + After speakers + Bottom | Countdown, speaker hover cards, early bird | Early bird pricing, social proof, speaker credibility |
+| 19 | Product Reviews | Hero (product + rating) → Rating breakdown → Reviews → Buy CTA | After reviews + Buy alongside | Star fill anim, review filter, photo lightbox | User-generated content, verified purchases, respond to negative |
+| 20 | Community/Forum | Hero (value prop) → Popular topics → Active members → Join CTA | Join button + After members | Avatars anim, activity feed, topic previews | Show active community, preview content, easy onboarding |
+| 21 | Before-After | Hero (problem) → Transformation slider → How it works → Results CTA | After transformation + Bottom | Slider comparison, before/after reveal, counters | Visual proof, 45% higher conversion, real results |
+| 22 | Marketplace/Directory | Hero (search) → Categories → Featured listings → Trust → CTA | Hero search bar + Navbar list | Search autocomplete, map hover, card carousel | Search bar IS the CTA, reduce friction |
+| 23 | Newsletter/Content | Hero (value + form) → Recent issues → Social proof → About author | Hero inline form + Sticky header | Text highlight, typewriter, subtle fade | Single field email, show "Join X,000 readers" |
+| 24 | Webinar Registration | Hero (topic + timer + form) → What you'll learn → Speaker → Urgency → Form | Hero right form + Bottom anchor | Countdown, speaker float, urgent ticker | Limited seats, "Live" indicator, auto-timezone |
+| 25 | Enterprise Gateway | Hero (video/mission) → Solutions by Industry → By Role → Logos → Contact | Contact Sales + Login secondary | Slow video bg, logo carousel, tab switching | Path selection "I am a...", mega menu, trust signals |
+| 26 | Portfolio Grid | Hero (name/role) → Project grid (masonry) → About → Contact | Project card hover + Footer contact | Image lazy reveal, hover overlay, lightbox | Visuals first, filter by category, fast loading |
+| 27 | Horizontal Scroll | Intro (vertical) → Journey (horizontal track) → Detail → Vertical footer | Floating sticky or end of track | Scroll-jacking, parallax, progress indicator | Immersive discovery, keep nav visible |
+| 28 | Bento Grid Showcase | Hero → Bento grid features → Detail cards → Tech specs → CTA | Floating action or bottom of grid | Hover scale 1.02, video in cards, tilt, staggered | Scannable value props, high density, mobile stack |
+| 29 | 3D Configurator | Hero (configurator) → Features (synced) → Price/specs → Purchase | Inside configurator + Sticky bottom | Real-time render, material swap, rotate/zoom | Ownership feeling, 360 view, direct add-to-cart |
+| 30 | AI Dynamic Landing | Prompt/input hero → Generated result → How it works → Value prop | Input field hero + "Try it" | Typing effects, shimmer loaders, morphing | Immediate value, "show don't tell", low friction |
+
+---
+
+## 100 LUCIDE ICON REFERENCE
+
+Standard icon set for consistent UI. Use Lucide React or Lucide SVG.
+
+### Navigation
+| Icon | Import | Usage |
+|------|--------|-------|
+| Menu | `import { Menu } from 'lucide-react'` | Mobile nav toggle |
+| ArrowLeft | `import { ArrowLeft } from 'lucide-react'` | Back button |
+| ArrowRight | `import { ArrowRight } from 'lucide-react'` | Forward / Next / CTA |
+| ChevronDown | `import { ChevronDown } from 'lucide-react'` | Dropdown / Accordion |
+| ChevronUp | `import { ChevronUp } from 'lucide-react'` | Collapse / Minimize |
+| Home | `import { Home } from 'lucide-react'` | Home page |
+| X | `import { X } from 'lucide-react'` | Close / Dismiss |
+| ExternalLink | `import { ExternalLink } from 'lucide-react'` | External link |
+
+### Actions
+| Icon | Import | Usage |
+|------|--------|-------|
+| Plus | `import { Plus } from 'lucide-react'` | Add / Create new |
+| Minus | `import { Minus } from 'lucide-react'` | Remove / Decrease |
+| Trash2 | `import { Trash2 } from 'lucide-react'` | Delete (destructive) |
+| Edit | `import { Edit } from 'lucide-react'` | Edit / Modify |
+| Save | `import { Save } from 'lucide-react'` | Save / Persist |
+| Download | `import { Download } from 'lucide-react'` | Download / Export |
+| Upload | `import { Upload } from 'lucide-react'` | Upload / Import |
+| Copy | `import { Copy } from 'lucide-react'` | Copy to clipboard |
+| Share | `import { Share } from 'lucide-react'` | Share / Social |
+| Search | `import { Search } from 'lucide-react'` | Search / Find |
+| Filter | `import { Filter } from 'lucide-react'` | Filter / Sort |
+| Settings | `import { Settings } from 'lucide-react'` | Settings / Config |
+
+### Status
+| Icon | Import | Usage |
+|------|--------|-------|
+| Check | `import { Check } from 'lucide-react'` | Success / Done |
+| CheckCircle | `import { CheckCircle } from 'lucide-react'` | Verified / Approved |
+| XCircle | `import { XCircle } from 'lucide-react'` | Error / Failed |
+| AlertTriangle | `import { AlertTriangle } from 'lucide-react'` | Warning / Caution |
+| AlertCircle | `import { AlertCircle } from 'lucide-react'` | Info / Notice |
+| Info | `import { Info } from 'lucide-react'` | Tooltip / Help |
+| Loader | `import { Loader } from 'lucide-react'` | Loading (add `className="animate-spin"`) |
+| Clock | `import { Clock } from 'lucide-react'` | Time / Pending |
+
+### Communication
+| Icon | Import | Usage |
+|------|--------|-------|
+| Mail | `import { Mail } from 'lucide-react'` | Email / Contact |
+| MessageCircle | `import { MessageCircle } from 'lucide-react'` | Chat / Comment |
+| Phone | `import { Phone } from 'lucide-react'` | Phone / Call |
+| Send | `import { Send } from 'lucide-react'` | Send / Submit |
+| Bell | `import { Bell } from 'lucide-react'` | Notification |
+
+### User
+| Icon | Import | Usage |
+|------|--------|-------|
+| User | `import { User } from 'lucide-react'` | Profile / Account |
+| Users | `import { Users } from 'lucide-react'` | Team / Group |
+| UserPlus | `import { UserPlus } from 'lucide-react'` | Add user / Invite |
+| LogIn | `import { LogIn } from 'lucide-react'` | Login |
+| LogOut | `import { LogOut } from 'lucide-react'` | Logout |
+
+### Media
+| Icon | Import | Usage |
+|------|--------|-------|
+| Image | `import { Image } from 'lucide-react'` | Photo / Gallery |
+| Video | `import { Video } from 'lucide-react'` | Video / Film |
+| Play | `import { Play } from 'lucide-react'` | Play button |
+| Pause | `import { Pause } from 'lucide-react'` | Pause button |
+| Volume2 | `import { Volume2 } from 'lucide-react'` | Audio / Sound |
+| Mic | `import { Mic } from 'lucide-react'` | Microphone |
+| Camera | `import { Camera } from 'lucide-react'` | Photo capture |
+
+### Commerce
+| Icon | Import | Usage |
+|------|--------|-------|
+| ShoppingCart | `import { ShoppingCart } from 'lucide-react'` | Cart / Checkout |
+| ShoppingBag | `import { ShoppingBag } from 'lucide-react'` | Purchase / Bag |
+| CreditCard | `import { CreditCard } from 'lucide-react'` | Payment |
+| DollarSign | `import { DollarSign } from 'lucide-react'` | Price / Currency |
+| Tag | `import { Tag } from 'lucide-react'` | Price tag / Label |
+| Gift | `import { Gift } from 'lucide-react'` | Gift / Reward |
+| Percent | `import { Percent } from 'lucide-react'` | Discount / Sale |
+
+### Data & Analytics
+| Icon | Import | Usage |
+|------|--------|-------|
+| BarChart | `import { BarChart } from 'lucide-react'` | Analytics / Stats |
+| PieChart | `import { PieChart } from 'lucide-react'` | Distribution |
+| TrendingUp | `import { TrendingUp } from 'lucide-react'` | Growth / Positive |
+| TrendingDown | `import { TrendingDown } from 'lucide-react'` | Decline / Negative |
+| Activity | `import { Activity } from 'lucide-react'` | Activity / Pulse |
+| Database | `import { Database } from 'lucide-react'` | Storage / Data |
+
+### Files & Links
+| Icon | Import | Usage |
+|------|--------|-------|
+| File | `import { File } from 'lucide-react'` | Document |
+| FileText | `import { FileText } from 'lucide-react'` | Text document |
+| Folder | `import { Folder } from 'lucide-react'` | Directory |
+| FolderOpen | `import { FolderOpen } from 'lucide-react'` | Open directory |
+| Paperclip | `import { Paperclip } from 'lucide-react'` | Attachment |
+| Link | `import { Link } from 'lucide-react'` | URL / Hyperlink |
+| Clipboard | `import { Clipboard } from 'lucide-react'` | Paste / Notes |
+
+### Layout & Social
+| Icon | Import | Usage |
+|------|--------|-------|
+| Grid | `import { Grid } from 'lucide-react'` | Grid / Gallery |
+| List | `import { List } from 'lucide-react'` | List view |
+| Columns | `import { Columns } from 'lucide-react'` | Column layout |
+| Maximize | `import { Maximize } from 'lucide-react'` | Fullscreen |
+| Minimize | `import { Minimize } from 'lucide-react'` | Minimize |
+| Sidebar | `import { Sidebar } from 'lucide-react'` | Sidebar panel |
+| Heart | `import { Heart } from 'lucide-react'` | Like / Favorite |
+| Star | `import { Star } from 'lucide-react'` | Rating / Review |
+| ThumbsUp | `import { ThumbsUp } from 'lucide-react'` | Approve / Like |
+| ThumbsDown | `import { ThumbsDown } from 'lucide-react'` | Disapprove |
+| Bookmark | `import { Bookmark } from 'lucide-react'` | Save for later |
+| Flag | `import { Flag } from 'lucide-react'` | Report / Mark |
+
+### Security & Location
+| Icon | Import | Usage |
+|------|--------|-------|
+| Lock | `import { Lock } from 'lucide-react'` | Secure / Private |
+| Unlock | `import { Unlock } from 'lucide-react'` | Open access |
+| Shield | `import { Shield } from 'lucide-react'` | Protection |
+| Key | `import { Key } from 'lucide-react'` | Password / Access |
+| Eye | `import { Eye } from 'lucide-react'` | Show / View |
+| EyeOff | `import { EyeOff } from 'lucide-react'` | Hide / Invisible |
+| MapPin | `import { MapPin } from 'lucide-react'` | Location marker |
+| Map | `import { Map } from 'lucide-react'` | Map / Directions |
+| Navigation | `import { Navigation } from 'lucide-react'` | Compass / Navigate |
+| Globe | `import { Globe } from 'lucide-react'` | World / International |
+
+### Time & Dev
+| Icon | Import | Usage |
+|------|--------|-------|
+| Calendar | `import { Calendar } from 'lucide-react'` | Date / Schedule |
+| RefreshCw | `import { RefreshCw } from 'lucide-react'` | Refresh / Reload |
+| RotateCcw | `import { RotateCcw } from 'lucide-react'` | Undo / Revert |
+| RotateCw | `import { RotateCw } from 'lucide-react'` | Redo / Forward |
+| Code | `import { Code } from 'lucide-react'` | Code / Dev |
+| Terminal | `import { Terminal } from 'lucide-react'` | Console / CLI |
+| GitBranch | `import { GitBranch } from 'lucide-react'` | Version control |
+| Github | `import { Github } from 'lucide-react'` | GitHub repo |
 
 ---
 
