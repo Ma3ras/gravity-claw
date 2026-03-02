@@ -378,7 +378,7 @@ async function startWorker() {
         try {
             console.log("[Trace] Polling Turso...");
             const result = await db.execute(`
-                SELECT id, project_path, prompt, repo_url 
+                SELECT id, project_path, prompt, repo_url, role, chain_id 
                 FROM antigravity_tasks 
                 WHERE status = 'pending' 
                 ORDER BY created_at ASC 
@@ -397,6 +397,8 @@ async function startWorker() {
             const rawProjectPath = row.project_path as string;
             const prompt = row.prompt as string;
             const repoUrl = (row.repo_url as string) || "github.com/Ma3ras/gravity-claw.git";
+            const taskRole = (row.role as string) || null;
+            const chainId = (row.chain_id as string) || null;
             const cloneDir = path.resolve(process.env.CLONE_DIR || `./cloud-workspace-${id}`);
 
             log.info(`[CloudWorker] Picked up task #${id} for repo ${repoUrl}`);
@@ -435,77 +437,69 @@ async function startWorker() {
             // Even if no changes were pushed to github this run, the user might have provided missing credentials now, so we can still attempt a deploy
             const deployedUrl = await deployToNetlify(cloneDir);
 
-            // 5. Read workspace stage.json to pass back to Orchestrator
-            let resultData = null;
-            try {
-                const wsDir = path.join(cloneDir, ".agent_workspace");
-                if (fs.existsSync(wsDir)) {
-                    const projects = fs.readdirSync(wsDir);
-                    if (projects.length > 0) {
-                        const stageFile = path.join(wsDir, projects[0], "stage.json");
-                        if (fs.existsSync(stageFile)) {
-                            resultData = fs.readFileSync(stageFile, "utf-8");
-                        }
-                    }
-                }
-            } catch (e) {
-                log.warn("[CloudWorker] Failed to read stage.json to send back", { error: String(e) });
-            }
-
-            await db.execute({
-                sql: `UPDATE antigravity_tasks SET status = 'completed', result_data = ? WHERE id = ?`,
-                args: [resultData, id]
-            });
-
-            log.info(`[CloudWorker] Successfully completed task #${id}`);
-
-            // ── AUTO-CHAIN: Read stage.json and spawn follow-up tasks ──
-            if (resultData) {
+            // AUTO-CHAIN: DB-driven pipeline (Architect -> Developer -> Reviewer)
+            if (taskRole === 'Architect' && chainId) {
+                log.info(`[CloudWorker] Architect completed. Auto-chaining Developer task...`);
+                let architectPlan = '';
                 try {
-                    const stageJson = JSON.parse(resultData);
-                    const subtasks = stageJson.subtasks || [];
-                    const pendingTasks = subtasks.filter((t: any) => t.status === 'pending');
+                    const { stdout } = await execPromise(`git log --oneline -1 --format="%B" && git diff HEAD~1 --stat`, { cwd: cloneDir });
+                    architectPlan = stdout.substring(0, 3000);
+                } catch { architectPlan = 'See repository for Architect output.'; }
 
-                    if (pendingTasks.length > 0) {
-                        log.info(`[CloudWorker] Found ${pendingTasks.length} pending subtasks in stage.json. Auto-chaining...`);
+                const devPrompt = `You are a Senior Full-Stack Developer in an autonomous agent team.
 
-                        for (const sub of pendingTasks) {
-                            const role = sub.assignedRole || sub.title || 'Agent';
-                            const requirements = sub.requirements ? sub.requirements.join('\n- ') : sub.description || sub.title;
+The Lead Architect has completed the planning phase for this project.
+Here is what the Architect produced (git changes):
+${architectPlan}
 
-                            const chainPrompt = `
-You are a ${role} agent in a multi-agent team.
+YOUR JOB:
+1. Implement the COMPLETE codebase according to the Architect plan in this repository.
+2. Write ALL necessary code files (backend, frontend, configs, etc.).
+3. Install dependencies (npm init, npm install, etc.).
+4. Verify everything compiles: run npm run build or npx tsc.
+5. Write a README.md with setup instructions.
+6. DO NOT skip steps. Write real, working code.`;
 
-The Lead Architect has completed the planning phase. Here is the full project state:
-${resultData}
+                const devResult = await db.execute({
+                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Developer', ?)`,
+                    args: ['./', devPrompt, repoUrl, chainId]
+                });
+                const devId = Number(devResult.lastInsertRowid);
+                log.info(`[CloudWorker] Auto-chained Developer as DB task #${devId}`);
+                await sendTelegramNotification(`[Auto-Chain] Developer-Task #${devId} erstellt. Der Developer implementiert jetzt den Code!`);
 
-YOUR SPECIFIC TASK:
-Title: ${sub.title}
-Requirements:
-- ${requirements}
+            } else if (taskRole === 'Developer' && chainId) {
+                log.info(`[CloudWorker] Developer completed. Auto-chaining Reviewer task...`);
+                let devChanges = '';
+                try {
+                    const { stdout } = await execPromise(`git log --oneline -3 && git diff HEAD~1 --stat`, { cwd: cloneDir });
+                    devChanges = stdout.substring(0, 3000);
+                } catch { devChanges = 'See repository for Developer output.'; }
 
-INSTRUCTIONS:
-1. Implement exactly what is described above in this repository.
-2. When finished, read the file .agent_workspace/*/stage.json, find YOUR subtask (id: "${sub.id}"), set its "status" to "completed", and add a summary to "result".
-3. Save the updated stage.json.
-4. Verify your code compiles (npm run build or npx tsc).
-`;
+                const reviewPrompt = `You are a strict QA Reviewer and Security Auditor in an autonomous agent team.
 
-                            const chainResult = await db.execute({
-                                sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status) VALUES (?, ?, ?, 'pending')`,
-                                args: ['./', chainPrompt, repoUrl]
-                            });
+The Developer has just finished implementing the project. Here is a summary of their changes:
+${devChanges}
 
-                            const newId = Number(chainResult.lastInsertRowid);
-                            log.info(`[CloudWorker] Auto-chained subtask "${sub.title}" as DB task #${newId}`);
-                            await sendTelegramNotification(`🔗 **Auto-Chain:** Neuer Task #${newId} erstellt für **${role}** – "${sub.title}"`);
-                        }
-                    } else {
-                        log.info(`[CloudWorker] No pending subtasks found in stage.json. Pipeline complete.`);
-                    }
-                } catch (parseErr) {
-                    log.warn(`[CloudWorker] Failed to parse stage.json for auto-chaining`, { error: String(parseErr) });
-                }
+YOUR JOB:
+1. Review ALL code files for bugs, security issues, and best practices.
+2. Run the test suite if it exists (npm test).
+3. Run the build (npm run build or npx tsc) to verify compilation.
+4. Fix any critical bugs you find directly in the code.
+5. Ensure a complete README.md exists with accurate setup instructions.
+6. If there are issues, fix them. Do not just report them.`;
+
+                const reviewResult = await db.execute({
+                    sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, status, role, chain_id) VALUES (?, ?, ?, 'pending', 'Reviewer', ?)`,
+                    args: ['./', reviewPrompt, repoUrl, chainId]
+                });
+                const reviewId = Number(reviewResult.lastInsertRowid);
+                log.info(`[CloudWorker] Auto-chained Reviewer as DB task #${reviewId}`);
+                await sendTelegramNotification(`[Auto-Chain] Reviewer-Task #${reviewId} erstellt. Der Reviewer prueft jetzt den Code!`);
+
+            } else if (taskRole === 'Reviewer' && chainId) {
+                log.info(`[CloudWorker] Reviewer completed. Pipeline for chain ${chainId} is DONE!`);
+                await sendTelegramNotification(`Pipeline komplett! Alle 3 Agenten (Architect, Developer, Reviewer) haben das Projekt erfolgreich abgeschlossen! Repo: https://github.com/${repoUrl.replace('.git', '')}`);
             }
 
             // Send completion message directly to Telegram

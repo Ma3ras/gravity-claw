@@ -1,5 +1,6 @@
 import type { Client } from "@libsql/client";
 import { AgentConfig, Subtask } from '../types/index.js';
+import { randomUUID } from "crypto";
 
 /**
  * Spawns a new codex agent by dispatching a task to the Cloud Worker via Turso database.
@@ -20,6 +21,9 @@ export async function spawnAgent(
 ): Promise<number> {
     console.log(`[Orchestrator] Dispatching ${config.role} agent for task ${subtask.id} to Cloud Worker...`);
 
+    // Generate a chain_id so the cloud-worker can auto-chain follow-up tasks
+    const chainId = randomUUID();
+
     const fullPrompt = `
 ${config.systemPrompt}
 
@@ -28,29 +32,21 @@ ${subtask.description}
 
 YOUR MISSION:
 1. Complete the subtask described above in the provided remote repository.
-2. The team shares a central state file located at:
-   ${workspacePath}/stage.json
-3. When you are finished, you MUST read that stage.json file, find the subtask object with id "${subtask.id}", set its "status" to "completed", and add any necessary details to "result".
-4. If you fail or get stuck, set its "status" to "failed" and describe why in "result".
-5. Save the updated stage.json file. This is how the Orchestrator knows you are done.
+2. Plan the architecture and output your design plan as files in the repository (e.g. ARCHITECTURE.md, or directly create the project structure).
+3. The Cloud Worker will automatically chain your output to the next agent (Developer or Reviewer) when you are done.
+4. Focus on doing excellent work. The pipeline handles coordination automatically.
 `;
 
-    // Construct the relative path that the cloud worker should use
-    // For safety, we'll just pass the standard project path, but Codex instructions
-    // will ask it to respect the stage.json path
-
-    // The Cloud Worker clones the repo. We want the agent to operate at the root,
-    // so it can find the .agent_workspace folder.
     const relativeProjectPath = './';
 
     try {
         const result = await db.execute({
-            sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url) VALUES (?, ?, ?)`,
-            args: [relativeProjectPath, fullPrompt, repoUrl]
+            sql: `INSERT INTO antigravity_tasks (project_path, prompt, repo_url, role, chain_id) VALUES (?, ?, ?, ?, ?)`,
+            args: [relativeProjectPath, fullPrompt, repoUrl, config.role, chainId]
         });
 
         const dbTaskId = Number(result.lastInsertRowid);
-        console.log(`[Orchestrator] Successfully dispatched task #${dbTaskId} to cloud queue.`);
+        console.log(`[Orchestrator] Successfully dispatched task #${dbTaskId} (role=${config.role}, chain=${chainId}) to cloud queue.`);
         return dbTaskId;
 
     } catch (error) {
@@ -58,4 +54,3 @@ YOUR MISSION:
         throw error;
     }
 }
-
