@@ -162,14 +162,25 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boo
         let branchName = 'main';
         try {
             const { stdout: branch } = await execPromise(`git rev-parse --abbrev-ref HEAD`, { cwd: cloneDir });
-            branchName = branch.trim() || 'main';
+            const detected = branch.trim();
+            // 'HEAD' means detached state (empty repo, no branches yet) — default to 'main'
+            if (detected && detected !== 'HEAD') {
+                branchName = detected;
+            }
         } catch { /* default to main */ }
 
+        // If detached HEAD (empty repo), create and checkout a real branch first
+        if (branchName === 'main') {
+            try {
+                await execPromise(`git checkout -B main`, { cwd: cloneDir });
+            } catch { /* branch might already exist */ }
+        }
+
         try {
-            await execPromise(`git push origin ${branchName}`, { cwd: cloneDir });
+            await execPromise(`git push -u origin ${branchName}`, { cwd: cloneDir });
         } catch (e1) {
-            log.warn(`[CloudWorker] Failed to push to ${branchName}, trying HEAD...`);
-            await execPromise(`git push origin HEAD`, { cwd: cloneDir });
+            log.warn(`[CloudWorker] Failed to push to ${branchName}, trying HEAD:refs/heads/main...`);
+            await execPromise(`git push origin HEAD:refs/heads/main`, { cwd: cloneDir });
         }
         log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         return true;
