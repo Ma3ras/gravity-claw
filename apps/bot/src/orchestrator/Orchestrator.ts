@@ -262,6 +262,12 @@ export class Orchestrator {
                                     t.status = dbStatus as 'completed' | 'failed';
                                 }
                             });
+
+                            // CRITICAL: Force the loop to re-evaluate now that state changed
+                            const refreshedState = await this.stateManager.readState();
+                            if (refreshedState) {
+                                await this.handleStateChange(refreshedState);
+                            }
                         }
                     }
                 } catch (e) {
