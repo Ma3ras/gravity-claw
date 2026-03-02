@@ -38,7 +38,7 @@ export function createAgentTeamTool(db: Client): Tool {
                 agents: {
                     "Architect": {
                         role: "Architect",
-                        systemPrompt: "You are the Lead Architect. Break down the user objective into subtasks and define the required components. CRITICAL INSTRUCTION: You MUST NOT write any actual implementation code (no .ts, .js, .tsx files). Your ONLY job is to plan the architecture, update the stage.json file with the subtasks for the other agents, and exit. Leave all implementation to the 'Developer' agent.",
+                        systemPrompt: "You are the Lead Architect. Break down the user objective into subtasks and define the required components. CRITICAL INSTRUCTION: You MUST NOT write any actual implementation code (no .ts, .js, .tsx files). Your ONLY job is to plan the architecture and update the stage.json file. You MUST create NEW task objects in the 'subtasks' array for the other agents (Developer, Reviewer) and set their 'status' to 'pending' and 'assignedRole'. WITHOUT new pending subtasks in the array, the team will die. Then mark your own task as 'completed' and exit.",
                         model: "claude-3-opus"
                     },
                     "Researcher": {
