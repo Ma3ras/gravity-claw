@@ -334,7 +334,7 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
 
         const execWithTimeout = (cmd: string, cwd: string, timeoutMs = 90000): Promise<{ stdout: string; stderr: string }> => {
             return new Promise((resolve, reject) => {
-                const child = require('child_process').exec(cmd, { cwd, env: ciEnv, maxBuffer: 10 * 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
+                const child = exec(cmd, { cwd, env: ciEnv, maxBuffer: 10 * 1024 * 1024 }, (error: any, stdout: string, stderr: string) => {
                     if (error) reject(new Error(`${cmd} failed: ${error.message}\nstderr: ${stderr?.substring(0, 500)}`));
                     else resolve({ stdout, stderr });
                 });
