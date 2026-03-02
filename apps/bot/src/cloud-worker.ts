@@ -435,9 +435,26 @@ async function startWorker() {
             // Even if no changes were pushed to github this run, the user might have provided missing credentials now, so we can still attempt a deploy
             const deployedUrl = await deployToNetlify(cloneDir);
 
+            // 5. Read workspace stage.json to pass back to Orchestrator
+            let resultData = null;
+            try {
+                const wsDir = path.join(cloneDir, ".agent_workspace");
+                if (fs.existsSync(wsDir)) {
+                    const projects = fs.readdirSync(wsDir);
+                    if (projects.length > 0) {
+                        const stageFile = path.join(wsDir, projects[0], "stage.json");
+                        if (fs.existsSync(stageFile)) {
+                            resultData = fs.readFileSync(stageFile, "utf-8");
+                        }
+                    }
+                }
+            } catch (e) {
+                log.warn("[CloudWorker] Failed to read stage.json to send back", { error: String(e) });
+            }
+
             await db.execute({
-                sql: `UPDATE antigravity_tasks SET status = 'completed' WHERE id = ?`,
-                args: [id]
+                sql: `UPDATE antigravity_tasks SET status = 'completed', result_data = ? WHERE id = ?`,
+                args: [resultData, id]
             });
 
             log.info(`[CloudWorker] Successfully completed task #${id}`);

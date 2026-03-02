@@ -228,18 +228,33 @@ export class Orchestrator {
             for (const subtask of inProgressSubtasks) {
                 try {
                     const result = await this.config.db.execute({
-                        sql: `SELECT status FROM antigravity_tasks WHERE id = ?`,
+                        sql: `SELECT status, result_data FROM antigravity_tasks WHERE id = ?`,
                         args: [subtask.dbTaskId!]
                     });
 
                     if (result.rows.length > 0) {
                         const dbStatus = result.rows[0].status as string;
+                        const resultData = result.rows[0].result_data as string | null;
 
                         // Note: The actual codex agent is supposed to update the state.json natively from inside the workspace.
                         // But if the server task completes/fails without doing so (e.g., node crash), we catch it here.
                         if (dbStatus === 'completed' || dbStatus === 'failed') {
                             console.log(`[Orchestrator] Cloud task #${subtask.dbTaskId} finished with status ${dbStatus}. Synchronizing state...`);
 
+                            // Synchronize the remote stage.json back into the local bot's state array before continuing.
+                            if (resultData) {
+                                try {
+                                    const remoteState = JSON.parse(resultData);
+                                    await this.stateManager.updateState(s => {
+                                        Object.assign(s, remoteState);
+                                    });
+                                    console.log(`[Orchestrator] Successfully merged remote stage.json from task #${subtask.dbTaskId}`);
+                                } catch (e) {
+                                    console.error(`[Orchestrator] Failed to parse remote stage.json resultData for task #${subtask.dbTaskId}:`, e);
+                                }
+                            }
+
+                            // Ensure the specific subtask is marked completed/failed in case it wasn't gracefully set.
                             await this.stateManager.updateState(s => {
                                 const t = s.subtasks.find(x => x.id === subtask.id);
                                 // Only override if the agent didn't already set it correctly

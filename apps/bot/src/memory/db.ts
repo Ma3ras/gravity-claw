@@ -95,6 +95,7 @@ export async function createTables(db: Client): Promise<void> {
         `ALTER TABLE facts ADD COLUMN hit_count INTEGER DEFAULT 0`,
         `ALTER TABLE facts ADD COLUMN last_accessed TEXT`,
         `ALTER TABLE facts ADD COLUMN importance_score REAL DEFAULT 1.0`,
+        `ALTER TABLE antigravity_tasks ADD COLUMN result_data TEXT`,
     ];
 
     for (const sql of migrations) {
