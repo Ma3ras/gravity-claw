@@ -494,4 +494,27 @@ export class MemoryManager {
         });
         log.info("Deleted background monitor", { monitorId });
     }
+
+    // ── Orchestrator Messages ───────────────────────────────────────
+
+    async getUnreadOrchestratorMessages(): Promise<Array<{ id: number; project_id: string; message: string }>> {
+        const result = await this.db.execute(`
+            SELECT id, project_id, message
+            FROM orchestrator_messages
+            WHERE status = 'unread'
+            ORDER BY created_at ASC
+        `);
+        return result.rows.map(r => ({
+            id: Number(r.id),
+            project_id: r.project_id as string,
+            message: r.message as string,
+        }));
+    }
+
+    async markOrchestratorMessageRead(msgId: number): Promise<void> {
+        await this.db.execute({
+            sql: `UPDATE orchestrator_messages SET status = 'read' WHERE id = ?`,
+            args: [msgId],
+        });
+    }
 }

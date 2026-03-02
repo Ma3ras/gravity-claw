@@ -1,8 +1,11 @@
 import { Tool } from "./index.js";
-import { Orchestrator } from "../orchestrator/Orchestrator.js";
-import { TeamConfig } from "../types/index.js";
 import type { Client } from "@libsql/client";
 import * as path from "path";
+import { spawn } from "child_process";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Define the tool config factory
 export function createAgentTeamTool(db: Client): Tool {
@@ -30,46 +33,30 @@ export function createAgentTeamTool(db: Client): Tool {
         execute: async (args: any) => {
             const { objective, projectName, repoUrl } = args;
 
-            const config: TeamConfig = {
-                projectName: projectName,
-                workspacePath: path.join(".agent_workspace", projectName),
-                repoUrl: repoUrl,
-                db: db,
-                agents: {
-                    "Architect": {
-                        role: "Architect",
-                        systemPrompt: "You are the Lead Architect. Break down the user objective into subtasks and define the required components. CRITICAL INSTRUCTION: You MUST NOT write any actual implementation code (no .ts, .js, .tsx files). Your ONLY job is to plan the architecture and update the stage.json file. You MUST create NEW task objects in the 'subtasks' array for the other agents (Developer, Reviewer) and set their 'status' to 'pending' and 'assignedRole'. WITHOUT new pending subtasks in the array, the team will die. Then mark your own task as 'completed' and exit.",
-                        model: "claude-3-opus"
-                    },
-                    "Researcher": {
-                        role: "Researcher",
-                        systemPrompt: "You are a Web Researcher. Find SEO tags and related best practices for the given task.",
-                        model: "claude-3-sonnet"
-                    },
-                    "Developer": {
-                        role: "Developer",
-                        systemPrompt: "You are a Senior Frontend Developer. Write the implementation code based on the Architect plan and Researcher data.",
-                        toolsAllowed: ["write_to_file", "run_command"],
-                        model: "claude-3-opus"
-                    },
-                    "Reviewer": {
-                        role: "Reviewer",
-                        systemPrompt: "You are a strict QA Reviewer. Review the completed code against the Architect specifications.",
-                        model: "claude-3-opus"
-                    }
-                }
-            };
+            const workspacePath = path.join(".agent_workspace", projectName);
 
-            const orchestrator = new Orchestrator(config);
+            const isCompiled = __filename.endsWith('.js');
+            const orchestratorFile = isCompiled ? 'cloud-orchestrator.js' : 'cloud-orchestrator.ts';
+            const orchestratorPath = path.resolve(__dirname, '..', orchestratorFile);
 
-            // Start without awaiting on it fully, since it runs in background and spawns windows
-            // The Orchestrator correctly handles its own background DB polling now.
-            orchestrator.start(objective).catch(console.error);
+            const command = isCompiled ? process.execPath : 'npx';
+            const processArgs = isCompiled
+                ? [orchestratorPath, projectName, repoUrl, objective]
+                : ['tsx', orchestratorPath, projectName, repoUrl, objective];
+
+            console.log(`[Telegram Bot] Spawning ephemeral Orchestrator: ${command} ${processArgs.join(' ')}`);
+
+            const orchestratorProcess = spawn(command, processArgs, {
+                detached: true,
+                stdio: 'ignore'
+            });
+
+            orchestratorProcess.unref(); // detach completely
 
             return JSON.stringify({
                 status: "started",
-                message: `Agent Team started for project '${projectName}' in repo ${repoUrl}. The Architect agent has been dispatched to the Turso DB queue and will be picked up by the Cloud Worker.`,
-                workspace: config.workspacePath
+                message: `Server-Side Agent Team started for project '${projectName}' in repo ${repoUrl}. The standalone Orchestrator daemon is now running in the background.`,
+                workspace: workspacePath
             });
         }
     };

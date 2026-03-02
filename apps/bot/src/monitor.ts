@@ -92,3 +92,45 @@ RULES:
         }
     }, intervalMs);
 }
+
+/**
+ * Polling loop to check for messages from the Server-Side Orchestrator
+ * and forward them to the Telegram Bot user.
+ */
+export function startOrchestratorMonitorLoop(
+    bot: Bot,
+    memory: MemoryManager,
+    userId: number,
+    intervalMs = 5000 // 5 seconds
+): NodeJS.Timeout {
+    log.info("Starting Orchestrator message monitor loop", { intervalMs });
+
+    return setInterval(async () => {
+        try {
+            const unread = await memory.getUnreadOrchestratorMessages();
+            if (unread.length === 0) return;
+
+            for (const msg of unread) {
+                log.info("Forwarding Orchestrator message to user", { projectId: msg.project_id });
+
+                await bot.api.sendMessage(
+                    userId,
+                    `🤖 **Orchestrator [${msg.project_id}]:**\n\n${msg.message}`,
+                    { parse_mode: "Markdown" }
+                ).catch(async () => {
+                    await bot.api.sendMessage(
+                        userId,
+                        `🤖 Orchestrator [${msg.project_id}]:\n\n${msg.message}`
+                    );
+                });
+
+                // Mark as read so we don't spam
+                await memory.markOrchestratorMessageRead(msg.id);
+            }
+        } catch (error) {
+            log.error("Orchestrator monitor loop error", {
+                error: error instanceof Error ? error.message : String(error)
+            });
+        }
+    }, intervalMs);
+}

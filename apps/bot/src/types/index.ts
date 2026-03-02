@@ -9,6 +9,7 @@ export interface TeamConfig {
     db: Client; // The Turso DB connection to dispatch tasks to the Cloud Worker
     agents: Record<string, AgentConfig>; // specific configurations for each role
     maxConcurrentAgents?: number;
+    onComplete?: () => void;
 }
 
 export interface AgentConfig {

@@ -15,7 +15,7 @@ import { loadSkills, skillsToPrompt } from "./skills/loader.js";
 import { McpBridge } from "./mcp/bridge.js";
 import { startHeartbeat } from "./heartbeat.js";
 import { createScheduleMonitorTool } from "./tools/schedule-monitor.js";
-import { startMonitorLoop } from "./monitor.js";
+import { startMonitorLoop, startOrchestratorMonitorLoop } from "./monitor.js";
 import { createRemoteTools } from "./tools/remote-fs.js";
 import { createAntigravityTaskTool } from "./tools/create-antigravity-task.js";
 import { createCheckTaskStatusTool, createAgentTeamTool } from "./tools/index.js";
@@ -85,11 +85,15 @@ async function main() {
     // ── Start Fast Background Monitor ────────────────────────────
     const monitorTimer = startMonitorLoop(bot, toolRegistry, memory, 60000); // Check every 60s
 
+    // ── Start Server-Side Orchestrator Bridge ────────────────────
+    const orchestratorTimer = startOrchestratorMonitorLoop(bot, memory, Array.from(config.allowedUserIds)[0] || 0, 5000); // Every 5s
+
     // Graceful shutdown
     const shutdown = async (signal: string) => {
         log.info(`Received ${signal}, shutting down...`);
         clearInterval(heartbeatTimer);
         clearInterval(monitorTimer);
+        clearInterval(orchestratorTimer);
         bot.stop();
         if (discordBot) discordBot.destroy();
         mcpBridge.disconnect();

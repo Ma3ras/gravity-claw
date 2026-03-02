@@ -87,6 +87,15 @@ export async function createTables(db: Client): Promise<void> {
             status          TEXT NOT NULL DEFAULT 'pending', -- pending, completed
             created_at      TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        -- Messages from Server-Side Orchestrator to Telegram Bot
+        CREATE TABLE IF NOT EXISTS orchestrator_messages (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_id  TEXT NOT NULL,
+            message     TEXT NOT NULL,
+            status      TEXT NOT NULL DEFAULT 'unread', -- unread, read
+            created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        );
     `);
 
     // ── Migrations: Self-evolving memory columns ──────────────────

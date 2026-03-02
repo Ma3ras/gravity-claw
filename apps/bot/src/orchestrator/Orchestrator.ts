@@ -17,11 +17,27 @@ export class Orchestrator {
     }
 
     /**
+     * Send a direct message to the user through the Telegram Bot bridge.
+     */
+    private async notifyUser(message: string) {
+        try {
+            await this.config.db.execute({
+                sql: `INSERT INTO orchestrator_messages (project_id, message) VALUES (?, ?)`,
+                args: [this.config.projectName, message]
+            });
+        } catch (e) {
+            console.error(`[Orchestrator] Failed to notify user:`, e);
+        }
+    }
+
+    /**
      * Starts a new project with a high-level objective.
      */
     public async start(globalObjective: string) {
         console.log(`[Orchestrator] Starting new team project: ${this.config.projectName}`);
         console.log(`[Orchestrator] Objective: ${globalObjective}`);
+
+        await this.notifyUser(`🛠️ Project **${this.config.projectName}** has been initialized in the background.\nThe Architect is now breaking down the objective.`);
 
         // 1. Initialize State
         const initialState: TaskState = {
@@ -192,8 +208,12 @@ export class Orchestrator {
             // Finalize and shut down the watch loop
             console.log(`[Orchestrator] Project ${this.config.projectName} finalized successfully. Outputting artifacts.`);
             if (this.pollingInterval) clearInterval(this.pollingInterval);
-            // DO NOT exit process here, as we run inside the Telegram bot now!
-            // process.exit(0); 
+
+            await this.notifyUser(`✅ Project **${this.config.projectName}** is successfully completed! All tasks finished.`);
+
+            if (this.config.onComplete) {
+                this.config.onComplete();
+            }
         }
     }
 
