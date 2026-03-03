@@ -98,7 +98,7 @@ The URL is often hidden in `data.resultJson` (a JSON string). Try in order:
 
 1. **Parse & Enhance**: Gather subject, style, ratio. Generate the enhanced prompt.
 2. **Show User in Telegram**: Tell the user the ETA (~15-60s) and show them the exact enhanced prompt you are using.
-3. **Run API Call via NodeJS**: Use the `run_command` or similar capability to execute a Node.js/cURL script that submits the POST request, polls the GET request, and parses the result. (Since you are an agent, write a temporary Node script in `.gravity-tmp` to handle the 5-second polling loop transparently, then execute it).
+3. **Run API Call via NodeJS**: Use the `run_command` or similar capability to execute a Node.js/cURL script that submits the POST request, polls the GET request, and parses the result. Since you are running on a Railway server, you can write a transient Node script in `/tmp` to handle the 5-180 second polling loop without blocking the main event thread, then execute it.
 4. **Deliver**: Once the script returns the URL, reply to the user with `![Image]({url})`.
 
 ### Batch Generation
