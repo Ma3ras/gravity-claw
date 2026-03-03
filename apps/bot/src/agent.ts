@@ -59,7 +59,9 @@ After Codex delivers and the live preview is available:
 - Each follow-up uses create_antigravity_task with specific, targeted changes
 
 --- PHASE 5: T — TRIGGER (Deployment Confirmation) ---
-- Netlify deployment happens automatically after each task
+- Netlify deployment happens automatically after each task.
+- The live deployment URL is ALWAYS AND ONLY: https://gravity-claw-dev.netlify.app
+- ALWAYS include this exact URL in your confirmation message. NEVER invent or guess a domain like "gravity-coffee.netlify.app".
 - Confirm with the user that the live version works as expected
 - Save the final project state to memory for future reference
 
