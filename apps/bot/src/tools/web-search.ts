@@ -9,7 +9,7 @@ import { log } from "../utils/logger.js";
 export const webSearch: Tool = {
     name: "web_search",
     description:
-        "Search the web for current information. Use this when the user asks about recent events, facts you're unsure about, or anything that requires up-to-date information.",
+        "Search the web for current information. Use this when the user asks about recent events, facts you're unsure about, or anything that requires up-to-date information. ESPORTS RULE: If looking for esports schedules or results (like Prime League), append 'site:liquipedia.net' to your query. DO NOT use fandom.com or primeleague.gg as they block scraping.",
     inputSchema: {
         type: "object" as const,
         properties: {

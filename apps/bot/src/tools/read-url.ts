@@ -9,7 +9,7 @@ import { config } from "../config.js";
 export const readUrl: Tool = {
     name: "read_url",
     description:
-        "Fetch and read the text content of a web page URL. Use this when the user shares a link and wants you to read, summarize, or analyze its content.",
+        "Fetch and read the text content of a web page URL. Use this when the user shares a link and wants you to read, summarize, or analyze its content. ESPORTS RULE: Try to avoid reading fandom.com or primeleague.gg as they have heavy anti-bot protections and will timeout.",
     inputSchema: {
         type: "object" as const,
         properties: {
