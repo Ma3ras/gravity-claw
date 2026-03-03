@@ -43,12 +43,32 @@ Use this **Quick Reference** to auto-detect style and size from common phrases:
 
 Generation models need detailed, structured prompts. "A cat" produces generic junk. "A cinematic shot of a Maine Coon cat sitting on a windowsill, golden hour lighting, dust motes, 85mm lens, f/1.8, highly detailed, 8k resolution" produces a masterpiece.
 
-**Enhancement Engine:**
-1. **Prefix:** Add the exact medium (e.g., "Cinematic 35mm photograph of...", "Vector logo design of...", "Studio anime illustration of...")
-2. **Subject:** Be brutally specific about the subject, their action, and the environment.
-3. **Lighting:** Add 2-3 lighting tags (e.g., "volumetric lighting, rim light, golden hour").
-4. **Camera/Style Tags:** Add medium-specific tags (e.g., "f/1.4, bokeh, Kodak Portra 400" OR "cel shaded, studio MAPPA").
-5. **Quality Boosters:** Always append: "masterpiece, best quality, highly detailed, ultra-realistic".
+**Step 2.1 — Detect or Ask for Style**
+
+| Style | Prefix | Quality Boosters (Suffix) |
+| --- | --- | --- |
+| **Photorealistic** | "A photorealistic" | Captured with professional camera equipment, natural lighting, sharp details, high dynamic range. |
+| **Cinematic** | "A cinematic film still of" | Dramatic lighting, shallow depth of field, anamorphic lens flare, color graded in teal and orange. |
+| **Illustration** | "A beautiful illustration of" | Digital art style, vibrant colors, clean lines, professional quality illustration. |
+| **3D Render** | "A high-quality 3D render of" | Studio lighting, PBR materials, octane render quality, smooth surfaces, ambient occlusion. |
+| **Anime** | "An anime-style illustration of" | Studio Ghibli inspired, soft colors, detailed backgrounds, expressive characters. |
+| **Watercolor** | "A watercolor painting of" | Soft washes of color, visible brush strokes, paper texture, artistic imperfections, dreamy quality. |
+| **Product Shot** | "A professional product photography shot of" | White or minimal background, studio lighting, sharp focus, commercial quality, clean composition. |
+| **Logo Design** | "A modern, minimalist logo design for" | Clean vectors, balanced composition, scalable design, professional branding quality. |
+| **Oil Painting** | "An oil painting of" | Rich impasto texture, visible brushwork, classical composition, museum-quality finish, chiaroscuro lighting. |
+| **Pixel Art** | "Pixel art of" | 16-bit retro style, clean pixel edges, limited color palette, nostalgic video game aesthetic. |
+| **Concept Art** | "Professional concept art of" | Industry-standard quality, dynamic composition, atmospheric perspective, matte painting techniques. |
+
+**Step 2.2 — Apply Enhancement Rules**
+
+- **Rule 1 — Smart Prefix**: Add style prefix if user's prompt doesn't start with "A ", "An ", or "The ".
+- **Rule 2 — Quality Suffix**: Append the style's quality suffix.
+- **Rule 3 — Specificity Boosters**: Add lighting tags (golden hour, studio light), textures, or composition logic.
+- **Rule 4 — Negative Prompt**: Add *"without X"* into the main prompt directly.
+- **Rule 5 — Technical Tags**: Always include "8K resolution, ultra-detailed, masterpiece quality".
+
+**Final Prompt Formula:**
+`{Style Prefix} {User's Core Description}. {Quality Suffix} {Specificity Boosters} {Technical Quality Tags}`
 
 *Skip enhancement ONLY if the user explicitly says "use my exact prompt".*
 
