@@ -1,9 +1,9 @@
-import { chat, toolsToOpenAIFormat } from "./llm.js";
-import { ToolRegistry } from "./tools/index.js";
-import { config } from "./config.js";
-import { log } from "./utils/logger.js";
-import type { ChatMessage } from "./llm.js";
-import type { MemoryManager } from "./memory/index.js";
+import { chat, toolsToOpenAIFormat } from "../providers/llm/index.js";
+import { ToolRegistry } from "../tools/index.js";
+import { config } from "../config.js";
+import { log } from "../utils/logger.js";
+import type { ChatMessage } from "../providers/llm/index.js";
+import type { MemoryManager } from "../memory/index.js";
 
 const SYSTEM_PROMPT = `You are Gravity Claw — a personal AI assistant and System Pilot running for your owner.
 

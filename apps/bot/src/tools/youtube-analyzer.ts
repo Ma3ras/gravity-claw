@@ -1,60 +1,45 @@
 import type { Tool } from "./index.js";
-import { exec } from "child_process";
-import { promisify } from "util";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const execPromise = promisify(exec);
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { analyze } from "./youtube/analyze-yt.js";
 
 export const youtubeAnalyzerTool: Tool = {
-    name: "analyze_youtube_video",
-    description: "Analyze a YouTube video URL to extract transcript, chapters, metadata, key insights, and actionable items. You can also specify a section like 'point 4' or request the full transcript.",
+    name: "youtube_analyzer",
+    description: "Analyze YouTube videos end-to-end to extract metadata, chapters, transcripts, summaries, and key points. Use when providing detailed breakdowns or answering questions about specific YouTube video content.",
     inputSchema: {
         type: "object",
         properties: {
-            url: {
+            videoInput: {
                 type: "string",
-                description: "The YouTube video URL (e.g., https://youtube.com/watch?v=... or https://youtu.be/...)",
+                description: "The YouTube Video URL or ID to analyze."
             },
-            section: {
+            sectionQuery: {
                 type: "string",
-                description: "(Optional) A specific chapter, point, or section to analyze, e.g., 'point 4' or 'Chapter 2'",
+                description: "Optional. Request a specific section (e.g., 'point 4', 'chapter 2', 'kapitel 1')."
             },
-            fullTranscript: {
+            includeTranscript: {
                 type: "boolean",
-                description: "(Optional) Set to true to retrieve the entire video transcript. Default is false to save tokens.",
+                description: "Include full transcript in output. Recommend leaving false unless specifically requested or searching for exact quotes across the entire video."
+            },
+            noCache: {
+                type: "boolean",
+                description: "Ignore cached analysis and fetch fresh data."
             }
         },
-        required: ["url"],
+        required: ["videoInput"]
     },
-    async execute(args: Record<string, unknown>): Promise<string> {
-        const url = String(args.url || "");
-        if (!url) return "Error: YouTube URL is required.";
-
-        const section = args.section ? String(args.section) : null;
-        const fullTranscript = Boolean(args.fullTranscript);
-
-        const scriptPath = path.join(__dirname, "youtube", "analyze-yt.js");
-
-        let command = `node "${scriptPath}" "${url}" --markdown`;
-        if (section) {
-            command += ` --section "${section.replace(/"/g, '\\"')}"`;
-        }
-        if (fullTranscript) {
-            command += ` --full-transcript`;
-        }
+    async execute(input: Record<string, unknown>): Promise<string> {
+        const videoInput = input.videoInput as string;
+        const options = {
+            asJson: false,
+            sectionQuery: (input.sectionQuery as string) || null,
+            includeTranscript: (input.includeTranscript as boolean) || false,
+            noCache: (input.noCache as boolean) || false
+        };
 
         try {
-            const { stdout, stderr } = await execPromise(command, { maxBuffer: 10 * 1024 * 1024 });
-            if (stderr && !stdout) {
-                return `Error analyzing video:\n${stderr}`;
-            }
-            return stdout.trim();
+            const result = await analyze(videoInput, options);
+            return JSON.stringify(result, null, 2);
         } catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
-            return `Failed to analyze YouTube video:\n${msg}`;
+            return `YouTube Analyzer Error: ${error instanceof Error ? error.message : String(error)}`;
         }
-    },
+    }
 };

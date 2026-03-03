@@ -1,4 +1,4 @@
-import { Orchestrator } from "./orchestrator/Orchestrator.js";
+import { Orchestrator } from "./engine/orchestrator.js";
 import { TeamConfig } from "./types/index.js";
 import { initDatabase } from "./memory/db.js";
 import * as path from "path";

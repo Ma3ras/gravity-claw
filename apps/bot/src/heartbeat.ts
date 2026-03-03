@@ -1,6 +1,6 @@
 import { log } from "./utils/logger.js";
 import { config } from "./config.js";
-import { runAgent } from "./agent.js";
+import { runAgent } from "./engine/runtime.js";
 import type { ToolRegistry } from "./tools/index.js";
 import type { MemoryManager } from "./memory/manager.js";
 import type { Bot } from "grammy";

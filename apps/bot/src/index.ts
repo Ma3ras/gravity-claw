@@ -9,7 +9,7 @@ import { readUrl } from "./tools/read-url.js";
 import { getWeather } from "./tools/weather.js";
 import { initDatabase, createTables } from "./memory/db.js";
 import { MemoryManager } from "./memory/manager.js";
-import { createBot } from "./bot.js";
+import { createBot } from "./channels/telegram.js";
 import { createDiscordBot } from "./channels/discord.js";
 import { loadSkills, SkillStore, skillsIndexToPrompt } from "./skills/loader.js";
 import { createLoadSkillTool } from "./tools/load-skill.js";

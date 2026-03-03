@@ -1,7 +1,7 @@
 import OpenAI from "openai";
-import { config } from "./config.js";
-import { log } from "./utils/logger.js";
-import type { Tool } from "./tools/index.js";
+import { config } from "../../config.js";
+import { log } from "../../utils/logger.js";
+import type { Tool } from "../../tools/index.js";
 
 // ── Client setup ────────────────────────────────────────────────────────────
 
