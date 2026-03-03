@@ -20,7 +20,7 @@ import { startMonitorLoop, startOrchestratorMonitorLoop } from "./monitor.js";
 import { createRemoteTools } from "./tools/remote-fs.js";
 import { createAntigravityTaskTool } from "./tools/create-antigravity-task.js";
 import { createCheckTaskStatusTool } from "./tools/index.js";
-import { youtubeAnalyzerTool } from "./tools/youtube-analyzer.js";
+
 async function main() {
     log.info("Starting Gravity Claw...", {
         model: config.llmModel,
@@ -56,7 +56,7 @@ async function main() {
     }
     toolRegistry.register(createAntigravityTaskTool(db));
     toolRegistry.register(createCheckTaskStatusTool(db));
-    toolRegistry.register(youtubeAnalyzerTool);
+
 
 
     // ── Load MCP Tool Servers ────────────────────────────────────
