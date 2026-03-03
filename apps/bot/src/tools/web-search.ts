@@ -1,4 +1,5 @@
 import type { Tool } from "./index.js";
+import { config } from "../config.js";
 import { log } from "../utils/logger.js";
 
 /**
@@ -26,50 +27,33 @@ export const webSearch: Tool = {
         log.info("Web search", { query });
 
         try {
-            // Use DuckDuckGo HTML search (more reliable than the API)
-            const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+            // Use Jina Search API (returns markdown optimized for LLMs)
+            const url = `https://s.jina.ai/${encodeURIComponent(query)}`;
             const response = await fetch(url, {
                 headers: {
-                    "User-Agent": "Mozilla/5.0 (compatible; GravityClaw/1.0)",
+                    "Accept": "text/plain",
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 GravityClaw/1.0",
+                    "X-Return-Format": "markdown",
+                    ...(config.embeddingApiKey && { "Authorization": `Bearer ${config.embeddingApiKey}` })
                 },
             });
 
             if (!response.ok) {
-                return `Search failed with status ${response.status}`;
+                return `Search failed with status ${response.status} ${response.statusText}`;
             }
 
-            const html = await response.text();
+            const markdown = await response.text();
 
-            // Extract search results from HTML
-            const results: string[] = [];
-            const resultRegex = /<a rel="nofollow" class="result__a" href="([^"]*)"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/g;
-            const snippetRegex = /<a class="result__snippet"[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/a>/g;
-
-            const links: string[] = [];
-            const titles: string[] = [];
-            const snippets: string[] = [];
-
-            let match;
-            while ((match = resultRegex.exec(html)) !== null) {
-                links.push(match[1] ?? "");
-                titles.push((match[2] ?? "").replace(/<[^>]*>/g, "").trim());
-            }
-            while ((match = snippetRegex.exec(html)) !== null) {
-                snippets.push((match[1] ?? "").replace(/<[^>]*>/g, "").trim());
-            }
-
-            const count = Math.min(links.length, 5);
-            for (let i = 0; i < count; i++) {
-                results.push(
-                    `${i + 1}. **${titles[i]}**\n   ${snippets[i] || "No snippet"}\n   ${links[i]}`
-                );
-            }
-
-            if (results.length === 0) {
+            if (!markdown || markdown.trim().length === 0) {
                 return `No results found for "${query}".`;
             }
 
-            return `Search results for "${query}":\n\n${results.join("\n\n")}`;
+            // Truncate to save token context
+            if (markdown.length > 5000) {
+                return markdown.substring(0, 5000) + "\n\n... (results truncated)";
+            }
+
+            return markdown;
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             log.error("Web search failed", { error: msg });
