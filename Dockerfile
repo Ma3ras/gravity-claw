@@ -1,9 +1,9 @@
 # Base image: Node.js 22 on Debian Slim (fixes libsql musl errors)
 FROM node:22-slim
 
-# Install Git (required for cloning and pushing) and Python 3 (required for yt-dlp/youtube-dl-exec)
-RUN apt-get update && apt-get install -y git python3 python-is-python3 && rm -rf /var/lib/apt/lists/*
-
+# Install Git (required for cloning and pushing) and Python 3 (required for yt-dlp/youtube-dl-exec and youtube transcript skill)
+RUN apt-get update && apt-get install -y git python3 python3-pip python-is-python3 && rm -rf /var/lib/apt/lists/*
+RUN pip3 install youtube-transcript-api --break-system-packages
 # Set working directory
 WORKDIR /app
 
