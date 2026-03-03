@@ -4,7 +4,7 @@ import { ToolRegistry } from "./tools/index.js";
 import { getCurrentTime } from "./tools/get-current-time.js";
 import { createMemoryRecallTool } from "./tools/memory-recall.js";
 import { createMemorySaveTool } from "./tools/memory-save.js";
-import { webSearch } from "./tools/web-search.js";
+import { createWebSearchTool } from "./tools/web-search.js";
 import { readUrl } from "./tools/read-url.js";
 import { getWeather } from "./tools/weather.js";
 import { initDatabase, createTables } from "./memory/db.js";
@@ -45,7 +45,7 @@ async function main() {
     toolRegistry.register(getCurrentTime);
     toolRegistry.register(createMemoryRecallTool(memory));
     toolRegistry.register(createMemorySaveTool(memory));
-    toolRegistry.register(webSearch);
+    toolRegistry.register(createWebSearchTool(db));
     toolRegistry.register(readUrl);
     toolRegistry.register(getWeather);
     toolRegistry.register(
