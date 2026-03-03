@@ -2,7 +2,7 @@
 FROM node:22-slim
 
 # Install Git (required for cloning and pushing) and Python 3 (required for yt-dlp/youtube-dl-exec)
-RUN apt-get update && apt-get install -y git python3 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y git python3 python-is-python3 && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
