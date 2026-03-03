@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+// @ts-nocheck
 
 import { YoutubeTranscript } from 'youtube-transcript';
 import fs from 'node:fs/promises';

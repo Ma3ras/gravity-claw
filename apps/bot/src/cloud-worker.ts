@@ -328,18 +328,29 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
     }
 
     try {
-        let frontendDir = cloneDir;
-        let pjsonPath = path.join(cloneDir, "package.json");
+        let frontendDir: string | null = null;
 
         // Prefer apps/web in monorepo
         if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
             frontendDir = path.join(cloneDir, "apps/web");
-            pjsonPath = path.join(frontendDir, "package.json");
             log.info(`[CloudWorker] Found monorepo frontend at apps/web`);
+        } else {
+            // Check if root has a proper frontend build script
+            const rootPjsonPath = path.join(cloneDir, "package.json");
+            if (fs.existsSync(rootPjsonPath)) {
+                try {
+                    const pkg = JSON.parse(fs.readFileSync(rootPjsonPath, "utf-8"));
+                    const buildScript = pkg.scripts?.build || "";
+                    if (buildScript.includes("vite") || buildScript.includes("next") || buildScript.includes("react-scripts")) {
+                        frontendDir = cloneDir;
+                        log.info(`[CloudWorker] Found frontend root project`);
+                    }
+                } catch (e) { }
+            }
         }
 
-        if (!fs.existsSync(pjsonPath)) {
-            log.info("[CloudWorker] No package.json found. Skipping Netlify deployment.");
+        if (!frontendDir) {
+            log.info("[CloudWorker] No frontend application found. Skipping Netlify deployment.");
             return null;
         }
 

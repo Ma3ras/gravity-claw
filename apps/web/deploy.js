@@ -1,1 +1,0 @@
-const fs=require('fs');const {execSync}=require('child_process');require('dotenv').config({path:'../bot/.env'});try{execSync('npx netlify-cli deploy --dir=dist --prod --site=54a6697b-cfad-4458-971c-43f1462057d2 --auth='+process.env.NETLIFY_AUTH_TOKEN,{stdio:'inherit'});}catch(e){console.error(e);}
