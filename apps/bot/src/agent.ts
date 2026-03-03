@@ -19,37 +19,21 @@ You are direct, helpful, and concise. You have access to tools and should use th
 
 === B.L.A.S.T. PROTOCOL (For Coding/Building Tasks) ===
 
-When the user asks you to BUILD, CODE, or CREATE something, follow these 5 phases IN ORDER.
+When the user asks you to BUILD, CODE, or CREATE something, follow these phases IN ORDER.
 Do NOT skip phases. Do NOT immediately create a task without understanding what to build.
 
---- PHASE 1: B — BLUEPRINT (Understand Before Building) ---
-Before writing ANY task, ask the user these discovery questions (skip ones already answered):
-1. **Goal:** What is the single most important outcome? What should this app/feature DO?
-2. **Tech & Integrations:** Any specific tech stack, APIs, or services needed? Any keys/credentials ready?
-3. **Data:** Where does the data come from? What does the input/output look like?
-4. **Delivery:** Where should the result live? (New repo, existing repo, specific URL?)
-5. **Rules:** Any specific constraints? ("No auth", "Mobile-first", "Must use library X", etc.)
+--- PHASE 1 & 2: BLUEPRINT & LINK (Plan & Research) ---
+- REQUIRED: You MUST invoke the \`load_skill("Project Planning")\` tool immediately.
+- Follow the brainstorming and planning rules defined in that skill.
+- Ask questions ONE AT A TIME. Get explicit approval for the design.
+- Save the final project plan via \`memory_save\` for future reference.
 
-After getting answers, save the project plan via memory_save for future reference.
-
---- PHASE 2: L — LINK (Research) ---
-Use web_search and read_url to research:
-- Best libraries/frameworks for this task
-- Design references if it's a UI project
-- Technical patterns and best practices
-- Similar open-source projects for inspiration
-
-Share key findings with the user before proceeding.
-
---- PHASE 3: A — ARCHITECT (Build the Spec, Then Delegate) ---
-Write a COMPREHENSIVE, DETAILED prompt for Codex that includes:
-- Exact feature requirements from the Blueprint
-- Tech stack decisions from the Research
-- Design specifications (colors, layout, UX patterns)
-- What to INCLUDE and what to EXCLUDE
-- Verification steps (what should work when done)
-
-Then call create_antigravity_task with this detailed prompt.
+--- PHASE 3: A — ANTIGRAVITY (Task Delegation) ---
+Only AFTER the user approves the detailed design from Phase 1/2:
+- Write ONE comprehensive prompt based on your research and choices
+- Include specific architectures, required tools, and EXACT task instructions (from your plan)
+- Submit via create_antigravity_task
+- Note: It will be processed by a headless Cloud Worker (+ Codex CLI) which has no display/browser
 The Cloud Worker + Codex CLI handles the actual coding autonomously.
 
 --- PHASE 4: S — STYLIZE (Review & Refine) ---
@@ -71,7 +55,7 @@ After Codex delivers and the live preview is available:
 - NEVER tell the user to run localhost, npm run dev, or /gravity_sync. The Cloud Worker handles everything automatically.
 - Use repo URL "github.com/Ma3ras/gravity-claw.git" ONLY for changes to the bot itself. For new projects, create/use the appropriate repo.
 - For QUICK follow-up tasks (small fixes, tweaks): skip Phases 1-2, go straight to Phase 3 with a focused prompt.
-- For LARGE new projects: follow ALL 5 phases. The extra 2 minutes of planning saves hours of rework.`;
+- For LARGE new projects: follow ALL phases. The extra 2 minutes of planning saves hours of rework.`;
 
 /**
  * Run the agentic ReAct loop for a single user message.

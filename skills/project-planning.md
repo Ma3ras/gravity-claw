@@ -19,16 +19,15 @@ triggers: plan, project, new app, new feature, brainstorm, design, architecture,
    - Check existing project files, docs, recent commits
    - Understand what already exists
 
-2. **Ask Clarifying Questions — ONE AT A TIME**
-   - Don't overwhelm with multiple questions
-   - Prefer multiple choice when possible
-   - Focus on: purpose, constraints, success criteria
-   - Questions to ask:
-     - What is the single most important outcome?
-     - Who is the target user?
-     - Any specific tech stack, APIs, or services?
-     - What does "done" look like?
-
+2. **Discover Requirements (The BLAST Checklist)**
+   - Ask clarifying questions — **ONE AT A TIME**. Never overwhelm the user.
+   - Use these 5 discovery pillars to guide your questions:
+     1. **Goal:** What is the single most important outcome? What should this DO?
+     2. **Tech & Integrations:** Any specific tech stack, APIs, or services?
+     3. **Data:** Where does the data come from? What is the input/output?
+     4. **Delivery:** New repo, existing repo, specific URL?
+     5. **Rules:** Any constraints? ("No auth", "Mobile-first")
+   
 3. **Propose 2-3 Approaches**
    - Present options with trade-offs
    - Lead with your recommendation and reasoning
