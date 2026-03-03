@@ -10,7 +10,6 @@ WORKDIR /app
 # Copy the monorepo package definitions (omitting package-lock.json to force native Linux resolution)
 COPY package.json ./
 COPY apps/bot/package.json ./apps/bot/
-COPY apps/web/package.json ./apps/web/
 
 # Install dependencies and force install native modules for linux x64
 RUN npm install
