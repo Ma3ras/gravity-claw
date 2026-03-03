@@ -7,7 +7,12 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-const execPromise = promisify(exec);
+const execPromiseRaw = promisify(exec);
+const execPromise = async (command: string, options: any = {}) => {
+    const opts = { maxBuffer: 1024 * 1024 * 50, ...options };
+    const { stdout, stderr } = await execPromiseRaw(command, opts);
+    return { stdout: String(stdout), stderr: String(stderr) };
+};
 
 // Cloud-specific configurations
 const GITHUB_PAT = process.env.GITHUB_PAT;
