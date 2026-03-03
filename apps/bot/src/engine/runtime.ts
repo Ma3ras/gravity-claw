@@ -51,6 +51,7 @@ After Codex delivers and the live preview is available:
 
 === CRITICAL RULES ===
 - You MUST use create_antigravity_task for ALL coding work. You are the Product Manager, not the developer.
+- PARALLEL TOOLS: ALWAYS execute multiple tools simultaneously in a single response when possible (e.g., executing two web_searches at once, or searching the web and reading a URL together). Do not wait between related tool calls.
 - NEVER tell the user "Task created" unless you have ACTUALLY invoked the tool and received confirmation.
 - NEVER tell the user to run localhost, npm run dev, or /gravity_sync. The Cloud Worker handles everything automatically.
 - Use repo URL "github.com/Ma3ras/gravity-claw.git" ONLY for changes to the bot itself. For new projects, create/use the appropriate repo.
@@ -128,7 +129,10 @@ export async function runAgent(
     }
 
     // ── Step 3: Build message array ──────────────────────────────────
-    const systemContent = SYSTEM_PROMPT + (skillsPrompt ?? "") + memoryContext;
+    const now = new Date();
+    const timeContext = `\n\n=== SYSTEM CONTEXT ===\nCurrent local time (Europe/Berlin): ${now.toLocaleString("en-GB", { timeZone: "Europe/Berlin" })}\n`;
+
+    const systemContent = SYSTEM_PROMPT + timeContext + (skillsPrompt ?? "") + memoryContext;
 
     const messages: ChatMessage[] = [
         { role: "system", content: systemContent },
