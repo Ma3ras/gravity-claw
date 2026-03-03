@@ -49,8 +49,8 @@ export const readUrl: Tool = {
 
             let text = await response.text();
 
-            // Truncate if too long (Balance: ~3500 tokens max to save API costs)
-            const MAX_LENGTH = 15000;
+            // Truncate to save token context
+            const MAX_LENGTH = 30000;
             if (text.length > MAX_LENGTH) {
                 text = text.substring(0, MAX_LENGTH) + "\n\n[... content truncated to save tokens]";
             }

@@ -67,9 +67,9 @@ export function createWebSearchTool(db: Client): Tool {
                     return `No results found for "${query}".`;
                 }
 
-                // Truncate to save token context
-                if (markdown.length > 5000) {
-                    markdown = markdown.substring(0, 5000) + "\n\n... (results truncated)";
+                // Truncate to save token context (30k chars is ~8k tokens, safe for Claude)
+                if (markdown.length > 30000) {
+                    markdown = markdown.substring(0, 30000) + "\n\n... (results truncated)";
                 }
 
                 // Save to cache
