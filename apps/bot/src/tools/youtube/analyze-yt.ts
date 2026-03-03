@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import { YoutubeTranscript } from 'youtube-transcript';
+import youtubedl from 'youtube-dl-exec';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -305,72 +305,55 @@ async function fetchTranscriptWithFallback(videoUrl, playerResponse) {
   let transcriptError = null;
 
   try {
-    const rows = await YoutubeTranscript.fetchTranscript(videoUrl);
-    const mapped = mapYoutubeTranscriptRows(Array.isArray(rows) ? rows : []);
-    if (mapped.length > 0) {
-      return {
-        transcript: mapped,
-        transcript_error: null,
-        transcript_source: {
-          provider: 'youtube-transcript',
-          language: null,
-          auto_generated: null
+    const output = await youtubedl(videoUrl, {
+      dumpJson: true,
+      writeAutoSubs: true,
+      subLangs: 'de,en,all',
+      skipDownload: true,
+      noWarnings: true
+    });
+
+    const subs = output.automatic_captions || output.subtitles || {};
+    // Find the best language track available natively
+    const bestLang = subs['de'] || subs['en'] || Object.values(subs)[0];
+
+    if (bestLang) {
+      const json3Track = bestLang.find(t => t.ext === 'json3') || bestLang[0];
+      if (json3Track && json3Track.url) {
+        const res = await fetch(json3Track.url);
+        const data = await res.json();
+        const events = data.events || [];
+
+        let mapped = events.filter(e => e.segs && e.segs.length > 0).map(e => ({
+          text: e.segs.map(s => s.utf8).join('').trim(),
+          start: e.tStartMs ? e.tStartMs / 1000 : 0,
+          duration: e.dDurationMs ? e.dDurationMs / 1000 : 0
+        })).filter(row => row.text.length > 0);
+
+        if (mapped.length > 0) {
+          return {
+            transcript: mapped,
+            transcript_error: null,
+            transcript_source: {
+              provider: 'youtube-dl-exec',
+              language: Object.keys(subs).find(key => subs[key] === bestLang) || 'unknown',
+              auto_generated: !!output.automatic_captions
+            }
+          };
         }
-      };
-    }
-    transcriptError = 'No transcript found via youtube-transcript.';
-  } catch (err) {
-    transcriptError = `Transcript via youtube-transcript failed: ${err instanceof Error ? err.message : String(err)}`;
-  }
-
-  const captionTrack = pickCaptionTrack(playerResponse);
-  if (!captionTrack) {
-    return {
-      transcript: [],
-      transcript_error: transcriptError || 'No transcript/captions available for this video.',
-      transcript_source: null
-    };
-  }
-
-  try {
-    const response = await fetch(captionTrack.baseUrl, { headers: { 'user-agent': 'Mozilla/5.0' } });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const xml = await response.text();
-    const matches = [...xml.matchAll(/<text\s+start="([^"]+)"\s+dur="([^"]+)"[^>]*>([\s\S]*?)<\/text>/g)];
-    const transcript = matches.map((m) => ({
-      text: htmlDecode(m[3]),
-      start: Number(m[1] || 0),
-      duration: Number(m[2] || 0)
-    })).filter((item) => item.text.length > 0);
-
-    if (transcript.length === 0) {
-      return {
-        transcript: [],
-        transcript_error: transcriptError || 'Caption track found but empty.',
-        transcript_source: null
-      };
-    }
-
-    return {
-      transcript,
-      transcript_error: null,
-      transcript_source: {
-        provider: 'caption-track-fallback',
-        language: captionTrack.language,
-        auto_generated: captionTrack.auto_generated
       }
-    };
+    }
+    transcriptError = 'No valid subtitle tracks (json3) found via yt-dlp.';
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return {
-      transcript: [],
-      transcript_error: `${transcriptError || 'Transcript unavailable.'} Fallback failed: ${msg}`,
-      transcript_source: null
-    };
+    transcriptError = `Transcript via yt-dlp failed: ${err instanceof Error ? err.message : String(err)}`;
   }
+
+  // If yt-dlp failed completely, just return the failure (native parsing is broken globally).
+  return {
+    transcript: [],
+    transcript_error: transcriptError || 'No transcript/captions available for this video.',
+    transcript_source: null
+  };
 }
 
 function extractViewCount(playerResponse, initialData) {
