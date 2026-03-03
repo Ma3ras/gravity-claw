@@ -271,8 +271,15 @@ export class MemoryManager {
         }
 
         // 2. Semantic vector search on facts
-        const semanticResults = await this.searchFactsBySemantic(query, limit);
-        results.push(...semanticResults);
+        // Optimization: Skip expensive vector generation for very short/generic messages
+        // that won't match any useful facts anyway (e.g., "ok", "yes", "thanks").
+        const isGeneric = /^(ok|okay|yes|no|ja|nein|danke|thanks|bitte|please|gut|good|cool|nice)\.?$/i.test(query.trim());
+        if (query.trim().length > 8 && !isGeneric) {
+            const semanticResults = await this.searchFactsBySemantic(query, limit);
+            results.push(...semanticResults);
+        } else {
+            log.debug("Skipping semantic memory search for short/generic input", { query });
+        }
 
         // 3. Deduplicate and sort by score
         const seen = new Set<string>();

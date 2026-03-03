@@ -132,32 +132,38 @@ export async function runAgent(
             let summary = await memory.getSessionSummary(sid);
 
             if (!summary) {
-                // Generate summary of older messages
+                // Start background summarization for the next turn
                 const olderMessages = await memory.getOlderMessages(sid, totalMessages - RECENT_BUFFER_SIZE);
                 const conversationText = olderMessages
                     .map((m) => `${m.role}: ${m.content}`)
                     .join("\n");
 
-                try {
-                    const summaryResponse = await chat([
-                        {
-                            role: "system",
-                            content: "Summarize this conversation into a compact paragraph. Focus on key facts, decisions, and context. Be concise.",
-                        },
-                        { role: "user", content: conversationText },
-                    ]);
-                    summary = summaryResponse.content ?? "";
-                    if (summary) {
-                        await memory.saveSessionSummary(sid, summary);
-                        log.info("Auto-summarized conversation buffer", {
+                // Fire and forget: do not await this
+                void chat([
+                    {
+                        role: "system",
+                        content: "Summarize this conversation into a compact paragraph. Focus on key facts, decisions, and context. Be concise.",
+                    },
+                    { role: "user", content: conversationText },
+                ]).then(async (summaryResponse) => {
+                    const newSummary = summaryResponse.content ?? "";
+                    if (newSummary) {
+                        await memory.saveSessionSummary(sid, newSummary);
+                        log.info("Auto-summarized conversation buffer in background", {
                             olderMessages: olderMessages.length,
-                            summaryLength: summary.length,
+                            summaryLength: newSummary.length,
                         });
                     }
-                } catch (error) {
-                    log.debug("Failed to summarize conversation", {
+                }).catch((error) => {
+                    log.debug("Failed to summarize conversation in background", {
                         error: error instanceof Error ? error.message : String(error),
                     });
+                });
+
+                // For THIS turn, since we don't have a summary yet, just inject the older messages directly
+                // to avoid losing context while the background summarizer runs.
+                for (const msg of olderMessages) {
+                    messages.push({ role: msg.role, content: msg.content });
                 }
             }
 
