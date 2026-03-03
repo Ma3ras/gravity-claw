@@ -256,8 +256,8 @@ export async function runAgent(
         // LLM wants to use tools — add the assistant message with tool calls
         messages.push(response.raw);
 
-        // Execute each tool call and add results
-        for (const toolCall of response.toolCalls) {
+        // Execute each tool call concurrently
+        const toolExecutionPromises = response.toolCalls.map(async (toolCall) => {
             const toolName = toolCall.function.name;
             let toolInput: Record<string, unknown> = {};
 
@@ -274,12 +274,15 @@ export async function runAgent(
             const result = await toolRegistry.execute(toolName, toolInput);
             log.debug(`Tool result: ${toolName}`, { result: result.substring(0, 200) });
 
-            messages.push({
-                role: "tool",
+            return {
+                role: "tool" as const,
                 tool_call_id: toolCall.id,
                 content: result,
-            });
-        }
+            };
+        });
+
+        const toolResponses = await Promise.all(toolExecutionPromises);
+        messages.push(...toolResponses);
     }
 
     // Safety limit reached
