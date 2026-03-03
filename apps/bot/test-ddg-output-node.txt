@@ -1,0 +1,39 @@
+             </td>
+                <td>
+                  <a rel="nofollow" href="https://www.livesport.com/en/esports/league-of-legends/lck/standings/" class='result-link'>League of Legends LCK 2026 Standings | Livesport.com</a>
+                </td>
+                
+            </tr>
+
+            
+              
+                <!-- Only show abstract separately if there's a click URL (not EOF) -->
+                <tr>
+                  <td>&nbsp;&nbsp;&nbsp;</td>
+                  <td class='result-snippet'>
+                    Where can I view up-to-date League of Legends <b>LCK</b> <b>standings</b> and team performance tables? On the League of Legends <b>LCK</b> <b>Standings</b> page at Livesport.com, you&#x27;ll find current league tables for the League of Legends <b>LCK</b> <b>2026</b> season, including overall <b>standings</b>, home and away records and more. The <b>standings</b> are regularly updated based on the latest results, ensuring you always have the most ...
+                  </td>
+                </tr>
+              
+            
+
+            
+              <tr>
+                <td>&nbsp;&nbsp;&nbsp;</td>
+                <td>
+                  <span class='link-text'>www.livesport.com/en/esports/league-of-legends/lck/standings/</span>
+                  
+                </td>
+              </tr>
+            
+
+            <tr>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+
+        
+      
+        
+            <tr>
+              

@@ -1,5 +1,6 @@
 import type { Tool } from "./index.js";
 import type { Client } from "@libsql/client";
+import * as cheerio from "cheerio";
 import { config } from "../config.js";
 import { log } from "../utils/logger.js";
 
@@ -46,22 +47,47 @@ export function createWebSearchTool(db: Client): Tool {
                     }
                 }
 
-                // Use Jina Search API (returns markdown optimized for LLMs)
-                const url = `https://s.jina.ai/${encodeURIComponent(query)}`;
+                // Use DuckDuckGo Lite (ultra-fast HTML snippets)
+                const url = "https://lite.duckduckgo.com/lite/";
                 const response = await fetch(url, {
+                    method: "POST",
                     headers: {
-                        "Accept": "text/plain",
-                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 GravityClaw/1.0",
-                        "X-Return-Format": "markdown",
-                        ...(config.embeddingApiKey && { "Authorization": `Bearer ${config.embeddingApiKey}` })
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                     },
+                    body: `q=${encodeURIComponent(query)}`
                 });
 
                 if (!response.ok) {
                     return `Search failed with status ${response.status} ${response.statusText}`;
                 }
 
-                let markdown = await response.text();
+                const html = await response.text();
+                const $ = cheerio.load(html);
+
+                const titleElements = $('.result-link');
+                const snippetElements = $('.result-snippet');
+
+                let markdown = "";
+                let count = 0;
+
+                titleElements.each((i, elem) => {
+                    if (count >= 5) return;
+
+                    const title = $(elem).text().trim();
+                    let link = $(elem).attr('href') || "";
+                    if (link.includes('uddg=')) {
+                        const match = link.match(/uddg=([^&]+)/);
+                        if (match) link = decodeURIComponent(match[1]);
+                    }
+
+                    const snippet = snippetElements[i] ? $(snippetElements[i]).text().trim() : "";
+
+                    if (title && link) {
+                        markdown += `### ${title}\n**URL:** ${link}\n**Snippet:** ${snippet}\n\n`;
+                        count++;
+                    }
+                });
 
                 if (!markdown || markdown.trim().length === 0) {
                     return `No results found for "${query}".`;
