@@ -400,7 +400,10 @@ export class MemoryManager {
                 : Buffer.from(factA.embedding as ArrayBuffer);
             const embA = bufferToEmbedding(bufA);
 
+            let iterations = 0;
             for (let j = i + 1; j < allFacts.rows.length; j++) {
+                if (++iterations % 500 === 0) await new Promise(r => setTimeout(r, 0)); // Yield to event loop
+
                 const factB = allFacts.rows[j]!;
                 if (toDelete.includes(Number(factB.id))) continue;
                 if (!factB.embedding) continue;

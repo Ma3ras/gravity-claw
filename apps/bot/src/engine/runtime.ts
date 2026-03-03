@@ -91,11 +91,24 @@ export async function runAgent(
         }
     }
 
-    // ── Step 2: Recall relevant memories ─────────────────────────────
+    // ── Step 2: Fetch context concurrently ───────────────────────────
     let memoryContext = "";
+    let totalMessages = 0;
+
     if (memory) {
         try {
-            const memories = await memory.recall(userMessage, 5);
+            const [memories, sessionCount] = await Promise.all([
+                memory.recall(userMessage, 5).catch((error) => {
+                    log.debug("Memory recall failed", {
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                    return [];
+                }),
+                memory.getSessionMessageCount(sid).catch(() => 0),
+            ]);
+
+            totalMessages = sessionCount;
+
             if (memories.length > 0) {
                 memoryContext =
                     "\n\n--- Relevant Memories ---\n" +
@@ -108,7 +121,7 @@ export async function runAgent(
                     "\n--- End Memories ---\n";
             }
         } catch (error) {
-            log.debug("Memory recall failed", {
+            log.debug("Memory parallel fetch failed", {
                 error: error instanceof Error ? error.message : String(error),
             });
         }
@@ -123,7 +136,6 @@ export async function runAgent(
 
     // Inject recent conversation buffer (with auto-summarization for long conversations)
     if (memory) {
-        const totalMessages = await memory.getSessionMessageCount(sid);
         const RECENT_BUFFER_SIZE = 10;
         const SUMMARIZE_THRESHOLD = 20;
 
