@@ -47,8 +47,9 @@ export function createAntigravityTaskTool(db: Client): Tool {
                 return `Ticket #${result.lastInsertRowid} successfully created for Antigravity! 
 CRITICAL SYSTEM INSTRUCTION FOR YOUR REPLY: 
 1. DO NOT tell the user to run /gravity_sync. The Cloud Worker clones and syncs the repository fully automatically in the background.
-2. DO NOT tell the user to run localhost or npm run dev. The Cloud Worker will automatically deploy the repository to the internet (e.g. Vercel/Netlify) and will send the user a Telegram message with the live link when finished.
-Just tell the user that the autonomous Cloud worker is handling it and they will receive a notification with a live link shortly.`;
+2. DO NOT tell the user to run localhost or npm run dev. The Cloud Worker will automatically deploy to Netlify and send the user a Telegram notification when finished.
+3. The deployment URL is ALWAYS https://gravity-claw-dev.netlify.app — do NOT invent or guess other URLs.
+Just tell the user that the autonomous Cloud Worker is handling it and the result will be live at https://gravity-claw-dev.netlify.app shortly.`;
             } catch (error) {
                 const msg = error instanceof Error ? error.message : String(error);
                 log.error("Failed to create Antigravity task", { error: msg });
