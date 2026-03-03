@@ -45,6 +45,16 @@ triggers: [comma-separated keywords that activate this skill]
 3. Rules/constraints the bot must follow
 4. Examples if helpful
 
+### ⚡ Skills with Executable Code (Very Important!)
+If the user asks for a skill that requires executing a script, API calls, or complex logic (like scraping, analyzing videos, or checking a database), **you MUST NOT write standalone Node.js scripts that the bot is expected to run via CLI**. The bot does not have a general-purpose terminal execution tool in its normal agent mode.
+
+Instead, you must create a **Native Bot Tool**:
+1. Write the logic as a TypeScript tool in `apps/bot/src/tools/<tool-name>.ts`.
+2. The file must export an object implementing the `Tool` interface (with `name`, `description`, `inputSchema`, and `execute`).
+3. If the tool needs heavy dependencies, wrap them in the `execute` function rather than writing standalone scripts.
+4. **Register the tool:** You MUST import and register the new tool inside `apps/bot/src/index.ts` in the `main()` function (`toolRegistry.register(yourNewTool);`).
+5. Only after creating and registering the tool, write the Markdown skill (`skills/<name>.md`) instructing the bot *when* and *how* to call this new native tool.
+
 ## Checklist for Creating a Skill
 - [ ] Identify the core capability
 - [ ] Define clear triggers (when should this skill activate?)
