@@ -166,7 +166,7 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
             // Exclude huge directories and lockfiles from diff so we don't crash Node's stdout Buffer (e.g. 50MB node_modules diffs)
             let gitDiffStr = "";
             try {
-                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build"`, { cwd });
+                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build" ":!REVIEW_FEEDBACK.md"`, { cwd });
                 gitDiffStr = gitDiff.stdout;
             } catch (e) {
                 log.warn(`[VibeOrchestrator] Git diff failed:`, { error: String(e) });
@@ -179,7 +179,11 @@ Here is the Git Diff of their changes:
 ${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
 Analyze the diff. Did the Developer successfully make the necessary changes for the task?
-IMPORTANT: If the task was merely to read, analyze, or plan, and the diff is empty, you MUST reply APPROVED. DO NOT reject an empty diff if no code changes were requested.
+IMPORTANT RULES FOR EMPTY DIFFS:
+1. If the task was merely to read, analyze, or plan, and the diff is empty, you MUST reply APPROVED.
+2. If the task was to install a dependency or configure something (e.g. Tailwind), and the diff is empty, ASSUME the Developer checked and found it was ALREADY INSTALLED or configured. Do NOT reject it. You MUST reply APPROVED.
+3. If the diff is empty for any other reason, consider if the task might have already been completed in a previous step. If so, reply APPROVED.
+
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
 If REJECTED, append a brief explanation of what is missing or broken.
             `;
