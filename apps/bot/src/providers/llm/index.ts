@@ -67,16 +67,60 @@ export async function chat(
 
     const message = choice.message;
 
+    // --- XML Tool Call Fallback for DeepSeek/Ollama ---
+    let parsedToolCalls = message.tool_calls ?? [];
+    let parsedContent = message.content;
+
+    if (!parsedToolCalls.length && parsedContent && parsedContent.includes("<function_calls>")) {
+        const invokeRegex = /<invoke\s+name="([^"]+)">([\s\S]*?)<\/invoke>/g;
+        let match;
+        const newCalls: OpenAI.Chat.Completions.ChatCompletionMessageToolCall[] = [];
+
+        while ((match = invokeRegex.exec(parsedContent)) !== null) {
+            const num = newCalls.length;
+            const toolName = match[1];
+            const paramBlock = match[2];
+
+            const params: Record<string, any> = {};
+            const paramRegex = /<parameter\s+name="([^"]+)"[^>]*>([\s\S]*?)<\/parameter>/g;
+            let pMatch;
+            while ((pMatch = paramRegex.exec(paramBlock)) !== null) {
+                params[pMatch[1]] = pMatch[2].trim();
+            }
+
+            newCalls.push({
+                id: `call_xml_${Date.now()}_${num}`,
+                type: 'function',
+                function: {
+                    name: toolName,
+                    arguments: JSON.stringify(params)
+                }
+            });
+        }
+
+        if (newCalls.length > 0) {
+            parsedToolCalls = newCalls;
+            // Optionally clear the content or keep it for the user to see what the LLM tried to do.
+            // For now, let's keep it but just execute the tools!
+            log.info("Intercepted and parsed XML tool calls from content", { count: newCalls.length });
+        }
+    }
+    // --- End XML Fallback ---
+
     log.debug("LLM response", {
-        hasContent: !!message.content,
-        toolCalls: message.tool_calls?.length ?? 0,
+        hasContent: !!parsedContent,
+        toolCalls: parsedToolCalls.length,
         finishReason: choice.finish_reason,
     });
 
     return {
-        content: message.content,
-        toolCalls: message.tool_calls ?? [],
-        raw: message,
+        content: parsedContent,
+        toolCalls: parsedToolCalls,
+        raw: {
+            ...message,
+            content: parsedContent,
+            tool_calls: parsedToolCalls.length > 0 ? parsedToolCalls : undefined
+        },
         usage: response.usage ?? undefined,
     };
 }
