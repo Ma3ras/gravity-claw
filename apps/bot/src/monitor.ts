@@ -113,18 +113,10 @@ export function startOrchestratorMonitorLoop(
             for (const msg of unread) {
                 log.info("Forwarding Orchestrator message to user", { projectId: msg.project_id });
 
-                await bot.api.sendMessage(
-                    userId,
-                    `🤖 **Orchestrator [${msg.project_id}]:**\n\n${msg.message}`,
-                    { parse_mode: "Markdown" }
-                ).catch(async () => {
-                    await bot.api.sendMessage(
-                        userId,
-                        `🤖 Orchestrator [${msg.project_id}]:\n\n${msg.message}`
-                    );
-                });
+                // We no longer forward every single message directly to the user to avoid spam!
+                // The user can actively request the status via /status or asking the LLM.
 
-                // Mark as read so we don't spam
+                // Mark as read so we don't process them again
                 await memory.markOrchestratorMessageRead(msg.id);
             }
         } catch (error) {
