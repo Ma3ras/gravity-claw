@@ -13,7 +13,14 @@ const execPromise = async (command: string, options: any = {}) => {
     return { stdout: String(stdout), stderr: String(stderr) };
 };
 
-const openai = new OpenAI(); // Automatically uses OPENAI_API_KEY from environment
+import { config } from "../config.js";
+
+// Make the orchestrator agnostic. It uses the same API key and Base URL as the Telegram Bot main LLM.
+// If the user uses OpenRouter, we use the OpenRouter format. If it's pure OpenAI, it works too.
+const openai = new OpenAI({
+    apiKey: config.llmApiKey || process.env.OPENAI_API_KEY,
+    baseURL: config.llmBaseUrl.includes("api.openai.com") ? undefined : config.llmBaseUrl
+});
 
 export interface VibeOptions {
     prompt: string;
