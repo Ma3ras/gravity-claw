@@ -227,10 +227,11 @@ export async function runCodexAgent(prompt: string, relativeProjectPath: string,
 5. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. 
 6. 🚨 SERVER RAM LIMIT: This code runs on a weak Railway Docker container with 500MB RAM. You are STRICTLY FORBIDDEN from running 'npm run build', 'next build', or 'npx next build'. Doing so will crash the server! Use ONLY 'npx tsc --noEmit' to verify your React/Next.js code.
 7. SELF-CORRECTION: If 'npx tsc --noEmit' fails with errors, fix your code and run it again until it succeeds.
+
+USER TASK:
+${prompt}
 `;
-${ prompt }
-        `;
-        log.debug(`[CloudWorker] Executing Codex CLI in ${ cwd }...`);
+        log.debug(`[CloudWorker] Executing Codex CLI in ${cwd}...`);
 
         await new Promise<void>((resolve, reject) => {
             const child = spawn("codex", ["exec", "--sandbox", "danger-full-access", strictInstructions], {
@@ -252,7 +253,7 @@ ${ prompt }
                     log.info(`[CloudWorker] Codex execution finished successfully.`);
                     resolve();
                 } else {
-                    reject(new Error(`Codex process exited with code ${ code } `));
+                    reject(new Error(`Codex process exited with code ${code} `));
                 }
             });
 
@@ -303,30 +304,30 @@ async function verifyCodexAuth(): Promise<void> {
             if (match && isCodeSection && !codeSent) {
                 codeSent = true;
                 const code = match[1].trim().toUpperCase();
-                log.info(`[CloudWorker] Captured Device Auth Code: ${ code } `);
+                log.info(`[CloudWorker] Captured Device Auth Code: ${code} `);
                 await sendTelegramNotification(`🚨 ** Cloud Worker Authentication Required! ** 🚨\n\nThe AI server needs to log into Codex to run tasks.Please authenticate it: \n\n1.Open: https://auth.openai.com/codex/device\n2. Enter this code: \`${code}\`\n\nThe Worker will pause and wait here until you approve it in your browser.`);
             }
         });
 
-child.stderr.on('data', (data) => {
-    process.stderr.write(data);
-});
+        child.stderr.on('data', (data) => {
+            process.stderr.write(data);
+        });
 
-child.on('close', async (code) => {
-    if (code === 0) {
-        log.info("[CloudWorker] Codex Device Auth successful!");
-        await sendTelegramNotification(`✅ **Cloud Worker Successfully Authenticated!**\n\nResuming task polling...`);
-        resolve();
-    } else {
-        log.error(`[CloudWorker] Codex Device Auth failed with code ${code}`);
-        await sendTelegramNotification(`❌ **Cloud Worker Auth Failed!**\n\nPlease restart the server and try again.`);
-        reject(new Error(`Codex login failed with code ${code}`));
-    }
-});
+        child.on('close', async (code) => {
+            if (code === 0) {
+                log.info("[CloudWorker] Codex Device Auth successful!");
+                await sendTelegramNotification(`✅ **Cloud Worker Successfully Authenticated!**\n\nResuming task polling...`);
+                resolve();
+            } else {
+                log.error(`[CloudWorker] Codex Device Auth failed with code ${code}`);
+                await sendTelegramNotification(`❌ **Cloud Worker Auth Failed!**\n\nPlease restart the server and try again.`);
+                reject(new Error(`Codex login failed with code ${code}`));
+            }
+        });
 
-child.on('error', (err) => {
-    reject(err);
-});
+        child.on('error', (err) => {
+            reject(err);
+        });
     });
 }
 
