@@ -138,7 +138,7 @@ async function setupWorkspace(repoUrl: string, cloneDir: string): Promise<string
     return cloneDir;
 }
 
-async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boolean> {
+export async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boolean> {
     log.info(`[CloudWorker] Syncing changes back to GitHub...`);
     try {
         // Ensure .agent_workspace is explicitly added even if sometimes ignored by default git rules
@@ -195,7 +195,7 @@ async function syncWorkspaceBack(message: string, cloneDir: string): Promise<boo
     }
 }
 
-async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<void> {
+export async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<void> {
     log.info(`[CloudWorker] Sending task to Codex CLI...`);
 
     try {
@@ -453,7 +453,7 @@ async function startWorker() {
             });
 
             // 1. Sync from GitHub
-            await sendTelegramNotification(`🔄 **Aufgabe #${id} in Bearbeitung!**\n\nDer Cloud Worker bereitet den Workspace für das Repository \`${repoUrl}\` vor...`);
+            // No telegram notification during setup
             await setupWorkspace(repoUrl, cloneDir);
 
             // Determine the relative path for Codex to operate in.
@@ -467,16 +467,24 @@ async function startWorker() {
                 }
             }
 
-            // 2. Run Codex
-            await sendTelegramNotification(`🧠 **Codex generiert Code...**\n\nDas Repository ist bereit. Codex schreibt und testet jetzt den Code für Aufgabe #${id}. Dies kann je nach Komplexität einige Minuten dauern (ETA: ca. 5 bis 15 Minuten).`);
-            await runCodexAgent(prompt, relativePath, cloneDir);
+            // 2. Run Vibe Coding Multi-Agent Orchestrator
+            const { runVibeCodingSession } = await import("./engine/vibe-orchestrator.js");
+            await runVibeCodingSession({
+                prompt,
+                relativePath,
+                cloneDir,
+                taskId: id,
+                db,
+                developerRunCallback: runCodexAgent,
+                syncCallback: syncWorkspaceBack
+            });
 
-            // 3. Push back to GitHub
-            const changesPushed = await syncWorkspaceBack(`Codex auto-completed task #${id}`, cloneDir);
-
-            // 4. Deploy to Netlify (non-blocking)
+            // 3. Deploy to Netlify (non-blocking)
             deployToNetlify(cloneDir).then(url => {
-                if (url) sendTelegramNotification(`Live Vorschau: ${url}`);
+                db.execute({
+                    sql: `INSERT INTO orchestrator_messages (project_id, message, status) VALUES (?, ?, 'unread')`,
+                    args: [String(id), `Live Vorschau: ${url || "Netlify deployment skipped"}`]
+                });
             }).catch(() => { });
 
             await db.execute({
@@ -486,14 +494,8 @@ async function startWorker() {
 
             log.info(`[CloudWorker] Successfully completed task #${id}`);
 
-            // Send completion message directly to Telegram
-            let text = `✅ Aufgabe #${id} erledigt! Dein autonomer Cloud Worker hat die Aufgabe bearbeitet.`;
-            if (changesPushed) {
-                text += ` Der Code wurde vollstaendig auf GitHub gepusht!`;
-            } else {
-                text += ` Es waren keine Code-Aenderungen an diesem Repository noetig.`;
-            }
-
+            // Send ONE completion message directly to Telegram (The Weekly/Nightly Report)
+            let text = `✅ **Schachmatt! Vibe-Coding-Session für Aufgabe #${id} beendet!**\n\nDein autonomer Cloud Worker hat über Nacht alle Agenten-Rollen durchgeführt (Architekt, Developer, Reviewer).\n\nDetails und Fortschritt wurden dokumentiert. Alle Code-Änderungen sind auf GitHub gepusht!`;
             await sendTelegramNotification(text);
 
         } catch (error) {

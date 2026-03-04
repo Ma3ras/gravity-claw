@@ -10,11 +10,10 @@ You are equipped with the ability to "watch" YouTube videos by reading their tex
 ## Execution Flow
 
 1. **Extract the Video ID:** Identify the video URL or Video ID from the user's prompt (e.g., `dQw4w9WgXcQ`).
-2. **Execute Fetch Script:** Use your terminal execution tool to run the following command strictly to fetch the transcript:
-   ```bash
-   python scripts/yt_fetch.py "VIDEO_ID_OR_URL"
-   ```
-3. **Ingest Context:** Wait for the command to finish. The script will output the compiled transcript of the entire video. Read this output directly into your context.
+2. **Execute Fetch:** Use your standard `read_url` tool to GET the following hidden YouTube Transcript API:
+   `https://www.youtube.com/api/timedtext?v=VIDEO_ID&lang=de`
+   *(replace VIDEO_ID with the actual ID. If you know the video is in English, use `lang=en`. Default to `de` if unsure.)*
+3. **Ingest XML Context:** Read the raw XML output directly into your context.
 4. **Answer:** Once ingested, use the transcript as your verified knowledge base to answer the user's questions, summarize the video's arguments, or extract key points perfectly. 
 
 ## Error Handling & Fallbacks
