@@ -225,8 +225,8 @@ export async function runCodexAgent(prompt: string, relativeProjectPath: string,
 3. MONOREPO STRUCTURE: If this is a monorepo, the Node.js backend is in 'apps/bot' and the React Vite frontend is in 'apps/web'. If this is a flat repo (no apps folder), just work in the root.
 4. COMPONENT RULES: All React UI components MUST be created inside 'apps/web/src/components' or 'src/components'. Do NOT create React components in the backend bot folder.
 5. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. 
-6. 🚨 SERVER RAM LIMIT: This code runs on a weak Railway Docker container with 500MB RAM. You are STRICTLY FORBIDDEN from running 'npm run build', 'next build', or 'npx next build'. Doing so will crash the server! Use ONLY 'npx tsc --noEmit' to verify your React/Next.js code.
-7. SELF-CORRECTION: If 'npx tsc --noEmit' fails with errors, fix your code and run it again until it succeeds.
+6. 🚨 SERVER RAM LIMIT: This code runs on a weak Railway Docker container with 500MB RAM. You are STRICTLY FORBIDDEN from running 'npm run build', 'next build', or 'npx next build'. Doing so will crash the server! 
+7. HOW TO VERIFY: Use ONLY 'npx tsc --noEmit <PathToTheFileYouJustCreated>' or 'npx eslint <PathToTheFileYouJustCreated>' to verify your isolated React/Next.js code. Do NOT run 'npx tsc --noEmit' globally, because a fresh Next.js template often has unused variables that will paralyze you! If your isolated file check passes, consider the task DONE.
 
 USER TASK:
 ${prompt}
