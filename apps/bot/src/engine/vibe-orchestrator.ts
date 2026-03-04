@@ -58,7 +58,7 @@ Format your response exactly like this:
     `;
 
     const archResponse = await openai.chat.completions.create({
-        model: "gpt-4o-mini", // Fast and cheap for planning
+        model: config.llmModel, // Use centrally configured model instead of hardcoded gpt-4o-mini
         messages: [{ role: "system", content: archPrompt }],
     });
 
@@ -138,7 +138,7 @@ If REJECTED, append a brief explanation of what is missing or broken.
             `;
 
             const reviewResponse = await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: config.llmModel,
                 messages: [{ role: "system", content: reviewPrompt as string } as any],
             });
 
@@ -223,7 +223,7 @@ APPROVED
         `;
 
         const criticResponse = await openai.chat.completions.create({
-            model: "gpt-4o", // Use powerful model for critical reflection
+            model: config.llmModel,
             messages: [{ role: "system", content: criticPrompt }],
         });
 
