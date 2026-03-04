@@ -8,7 +8,7 @@ import { promisify } from "util";
 
 const execPromiseRaw = promisify(exec);
 const execPromise = async (command: string, options: any = {}) => {
-    const opts = { maxBuffer: 1024 * 1024 * 50, ...options };
+    const opts = { maxBuffer: 10 * 1024 * 1024, ...options };
     const { stdout, stderr } = await execPromiseRaw(command, opts);
     return { stdout: String(stdout), stderr: String(stderr) };
 };
@@ -149,7 +149,8 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
 
             // 2b. Reviewer Agent Execution
             await updateTaskStatus(db, taskId, `Reviewer evaluating step: ${stepName}`);
-            const gitDiff = await execPromise(`git diff HEAD~1 HEAD`, { cwd });
+            // Exclude huge directories and lockfiles from diff so we don't crash Node's stdout Buffer (e.g. 50MB node_modules diffs)
+            const gitDiff = await execPromise(`git diff HEAD~1 HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build"`, { cwd });
 
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".

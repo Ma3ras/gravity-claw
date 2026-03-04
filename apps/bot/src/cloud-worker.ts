@@ -9,7 +9,8 @@ import os from "os";
 
 const execPromiseRaw = promisify(exec);
 const execPromise = async (command: string, options: any = {}) => {
-    const opts = { maxBuffer: 1024 * 1024 * 50, ...options };
+    // 50MB buffer to prevent stdout maxBuffer exceeded on heavy NPM runs
+    const opts = { maxBuffer: 50 * 1024 * 1024, ...options };
     const { stdout, stderr } = await execPromiseRaw(command, opts);
     return { stdout: String(stdout), stderr: String(stderr) };
 };
@@ -143,8 +144,19 @@ export async function syncWorkspaceBack(message: string, cloneDir: string): Prom
     try {
         // Ensure .agent_workspace is explicitly added even if sometimes ignored by default git rules
         try { await execPromise(`git add .agent_workspace`, { cwd: cloneDir }); } catch (e) { }
-        await execPromise(`git add .`, { cwd: cloneDir });
 
+        // MIGHTY SAFETY NET: Force `.gitignore` to contain node_modules and .next so git NEVER commits massive backend dependencies
+        const gitIgnorePath = path.join(cloneDir, ".gitignore");
+        if (!fs.existsSync(gitIgnorePath)) {
+            fs.writeFileSync(gitIgnorePath, "node_modules\n.next\ndist\nbuild\npackage-lock.json\nyarn.lock\npnpm-lock.yaml\n");
+        } else {
+            const currentIgnore = fs.readFileSync(gitIgnorePath, "utf-8");
+            if (!currentIgnore.includes("node_modules")) {
+                fs.appendFileSync(gitIgnorePath, "\nnode_modules\n.next\ndist\nbuild\n");
+            }
+        }
+
+        await execPromise(`git add .`, { cwd: cloneDir });
         const { stdout } = await execPromise(`git status --porcelain`, { cwd: cloneDir });
         if (!stdout.trim()) {
             log.info(`[CloudWorker] No changes to commit. Working tree is clean.`);
