@@ -139,6 +139,15 @@ You are the Developer. You have ARCHITECTURE.md to guide you.
 Your current strict task is: "${stepName}"
 IMPORTANT: You MUST complete this specific checklist item, verify compilation using 'npm run build' or similar, and fix any errors before considering it done. Do NOT try to do the entire project at once. Do NOT check off the item in TODO.md, the Orchestrator will do it.
             `;
+            // Capture the hash before developer runs so we know EXACTLY what they changed in this iteration
+            let baseCommitHash = "HEAD";
+            try {
+                const { stdout } = await execPromise(`git rev-parse HEAD`, { cwd });
+                baseCommitHash = stdout.trim();
+            } catch (e) {
+                // If it's a completely empty repo, fallback to empty tree hash
+                baseCommitHash = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+            }
 
             try {
                 await developerRunCallback(devPrompt, relativePath, cloneDir);
@@ -149,13 +158,21 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
 
             // 2b. Reviewer Agent Execution
             await updateTaskStatus(db, taskId, `Reviewer evaluating step: ${stepName}`);
+
             // Exclude huge directories and lockfiles from diff so we don't crash Node's stdout Buffer (e.g. 50MB node_modules diffs)
-            const gitDiff = await execPromise(`git diff HEAD~1 HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build"`, { cwd });
+            let gitDiffStr = "";
+            try {
+                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build"`, { cwd });
+                gitDiffStr = gitDiff.stdout;
+            } catch (e) {
+                log.warn(`[VibeOrchestrator] Git diff failed:`, { error: String(e) });
+                gitDiffStr = "Error reading git diff. The developer may not have committed any new files.";
+            }
 
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
 Here is the Git Diff of their changes:
-${gitDiff.stdout.substring(0, 10000)}
+${gitDiffStr.substring(0, 10000)}
 
 Analyze the diff. Did the Developer successfully make the necessary changes for the task?
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
