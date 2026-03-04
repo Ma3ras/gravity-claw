@@ -172,9 +172,10 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
 Here is the Git Diff of their changes:
-${gitDiffStr.substring(0, 10000)}
+${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
 Analyze the diff. Did the Developer successfully make the necessary changes for the task?
+IMPORTANT: If the task was merely to read, analyze, or plan, and the diff is empty, you MUST reply APPROVED. DO NOT reject an empty diff if no code changes were requested.
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
 If REJECTED, append a brief explanation of what is missing or broken.
             `;
