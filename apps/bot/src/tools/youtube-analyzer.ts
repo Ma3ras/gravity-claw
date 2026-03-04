@@ -1,14 +1,10 @@
-import { exec } from "child_process";
-import { promisify } from "util";
 import type { Tool } from "./index.js";
 import { log } from "../utils/logger.js";
-import * as path from "path";
-
-const execAsync = promisify(exec);
+import { YoutubeTranscript } from "youtube-transcript";
 
 export const youtubeAnalyzerTool: Tool = {
     name: "analyze_youtube_video",
-    description: "Fetches the full text transcript of a YouTube video so you can 'watch' it. Use this immediately when the user provides a YouTube URL or asks questions about a video. This tool automatically runs a python extraction script.",
+    description: "Fetches the full text transcript of a YouTube video so you can 'watch' it. Use this immediately when the user provides a YouTube URL, video ID, or asks questions about a video.",
     inputSchema: {
         type: "object",
         properties: {
@@ -25,19 +21,27 @@ export const youtubeAnalyzerTool: Tool = {
 
         try {
             log.info("Executing analyze_youtube_video tool", { input: urlOrId });
-            // Execute the python script. It is located at apps/bot/scripts/yt_fetch.py
-            const scriptPath = path.resolve(process.cwd(), "scripts", "yt_fetch.py");
 
-            // Use python3 to ensure compatibility with debian slim / Railway
-            const { stdout, stderr } = await execAsync(`python3 "${scriptPath}" "${urlOrId}"`);
-
-            if (stderr && stderr.toLowerCase().includes("error")) {
-                return `Error extracting transcript: ${stderr}`;
+            // Extract Video ID to make it more reliable
+            let videoId = urlOrId;
+            if (urlOrId.includes("v=")) {
+                videoId = urlOrId.split("v=")[1].split("&")[0];
+            } else if (urlOrId.includes("youtu.be/")) {
+                videoId = urlOrId.split("youtu.be/")[1].split("?")[0];
             }
 
-            return stdout || "No transcript found.";
+            // Using the native npm package:
+            const transcriptData = await YoutubeTranscript.fetchTranscript(videoId);
+
+            if (!transcriptData || transcriptData.length === 0) {
+                return "Error: The transcript returned empty. Video might not have closed captions enabled.";
+            }
+
+            const fullText = transcriptData.map(t => t.text).join(" ");
+            return fullText;
+
         } catch (error) {
-            return `Execution Error: ${error instanceof Error ? error.message : String(error)}`;
+            return `Error extracting transcript: ${error instanceof Error ? error.message : String(error)}. The video might not have closed captions enabled, or they are auto-generated and restricted.`;
         }
     },
 };
