@@ -110,8 +110,8 @@ Example:
         let iteration = 1;
 
         while (keepRunning) {
-            if (iteration > 20) {
-                log.warn(`[VibeOrchestrator] Task #${taskId} - Iteration cap reached (20). Stopping execution.`);
+            if (iteration > 150) {
+                log.warn(`[VibeOrchestrator] Task #${taskId} - Iteration cap reached (150). Stopping execution.`);
                 break;
             }
 

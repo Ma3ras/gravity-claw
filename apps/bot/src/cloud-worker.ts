@@ -342,20 +342,26 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
     try {
         let frontendDir: string | null = null;
 
-        // Prefer apps/web in monorepo
-        if (fs.existsSync(path.join(cloneDir, "apps/web/package.json"))) {
-            frontendDir = path.join(cloneDir, "apps/web");
-            log.info(`[CloudWorker] Found monorepo frontend at apps/web`);
-        } else {
-            // Check if root has a proper frontend build script
-            const rootPjsonPath = path.join(cloneDir, "package.json");
-            if (fs.existsSync(rootPjsonPath)) {
+        // Try apps/web, root, or any 1-level deep subdirectory (like chess-ai)
+        const possibleDirs = [
+            path.join(cloneDir, "apps/web"),
+            cloneDir,
+            ...fs.readdirSync(cloneDir)
+                .filter(p => !p.startsWith('.') && fs.statSync(path.join(cloneDir, p)).isDirectory())
+                .map(p => path.join(cloneDir, p))
+        ];
+
+        let buildScript = "";
+        for (const dir of possibleDirs) {
+            const pjsonPath = path.join(dir, "package.json");
+            if (fs.existsSync(pjsonPath)) {
                 try {
-                    const pkg = JSON.parse(fs.readFileSync(rootPjsonPath, "utf-8"));
-                    const buildScript = pkg.scripts?.build || "";
+                    const pkg = JSON.parse(fs.readFileSync(pjsonPath, "utf-8"));
+                    buildScript = pkg.scripts?.build || "";
                     if (buildScript.includes("vite") || buildScript.includes("next") || buildScript.includes("react-scripts")) {
-                        frontendDir = cloneDir;
-                        log.info(`[CloudWorker] Found frontend root project`);
+                        frontendDir = dir;
+                        log.info(`[CloudWorker] Found frontend project at ${dir}`);
+                        break;
                     }
                 } catch (e) { }
             }
@@ -369,20 +375,27 @@ async function deployToNetlify(cloneDir: string): Promise<string | null> {
         log.info(`[CloudWorker] Building frontend at ${frontendDir}...`);
         await sendTelegramNotification(`🏗️ **Baue Frontend fuer Netlify...**`);
 
-        const ciEnv = { ...process.env, CI: 'true' };
-        await execPromise("npm install", { cwd: frontendDir, env: ciEnv });
+        const ciEnv = { ...process.env, CI: 'true', NEXT_TELEMETRY_DISABLED: '1' };
+        await execPromise("npm install", { cwd: frontendDir, env: ciEnv, timeout: 120000 });
 
-        // Use npx vite build directly to bypass TypeScript type-checking errors
-        await execPromise("npx vite build", { cwd: frontendDir, env: ciEnv, timeout: 60000 });
+        // Run the actual package.json build script instead of hardcoding Vite
+        await execPromise("npm run build", { cwd: frontendDir, env: ciEnv, timeout: 120000 });
 
-        const distDir = path.join(frontendDir, "dist");
-        if (!fs.existsSync(distDir)) {
-            log.warn("[CloudWorker] No dist directory found after build. Skipping Netlify deployment.");
-            return null;
+        // Determine publish directory based on framework
+        let publishDir = path.join(frontendDir, "dist"); // default Vite/React
+        if (buildScript.includes("next")) {
+            // Next.js static exports output to 'out', otherwise Netlify builds '.next' 
+            // Better yet, Netlify CLI handles Next.js automatically if we just point to the frontend root.
+            publishDir = frontendDir;
+        }
+
+        if (!fs.existsSync(publishDir)) {
+            log.warn("[CloudWorker] Publish directory not found after build. Deployment might fail.");
         }
 
         log.info(`[CloudWorker] Deploying to Netlify...`);
-        await execPromise(`npx netlify deploy --prod --dir="${distDir}" --site="${siteId}"`, {
+        // We use --dir parameter but for Next.js it relies on the root of the next.js app.
+        await execPromise(`npx netlify deploy --prod --dir="${publishDir}" --site="${siteId}" --build`, {
             cwd: frontendDir,
             env: { ...ciEnv, NETLIFY_AUTH_TOKEN: authToken },
             timeout: 60000
