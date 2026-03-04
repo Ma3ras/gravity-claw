@@ -108,6 +108,8 @@ Example:
         // Phase 2: The Developer Execution Loop
         let keepRunning = true;
         let iteration = 1;
+        let lastStepName = "";
+        let baseCommitHash = "HEAD";
 
         while (keepRunning) {
             if (iteration > 300) {
@@ -131,6 +133,17 @@ Example:
             const currentTask = lines[nextTaskIndex];
             const stepName = currentTask.replace("- [ ]", "").trim();
 
+            // Only capture base commit hash at the START of a newly assigned task, NOT on retries
+            if (stepName !== lastStepName) {
+                try {
+                    const { stdout } = await execPromise(`git rev-parse HEAD`, { cwd });
+                    baseCommitHash = stdout.trim();
+                } catch (e) {
+                    baseCommitHash = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+                }
+                lastStepName = stepName;
+            }
+
             await updateTaskStatus(db, taskId, `Developer executing step: ${stepName} (Iteration ${iteration})`);
 
             // 2a. Developer Agent Execution
@@ -139,15 +152,6 @@ You are the Developer. You have ARCHITECTURE.md to guide you.
 Your current strict task is: "${stepName}"
 IMPORTANT: You MUST complete this specific checklist item, verify compilation using 'npm run build' or similar, and fix any errors before considering it done. Do NOT try to do the entire project at once. Do NOT check off the item in TODO.md, the Orchestrator will do it.
             `;
-            // Capture the hash before developer runs so we know EXACTLY what they changed in this iteration
-            let baseCommitHash = "HEAD";
-            try {
-                const { stdout } = await execPromise(`git rev-parse HEAD`, { cwd });
-                baseCommitHash = stdout.trim();
-            } catch (e) {
-                // If it's a completely empty repo, fallback to empty tree hash
-                baseCommitHash = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
-            }
 
             try {
                 await developerRunCallback(devPrompt, relativePath, cloneDir);
