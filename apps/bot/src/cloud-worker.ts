@@ -242,6 +242,13 @@ ${prompt}
 
             let fullOutput = "";
 
+            // 10 minute timeout to prevent indefinite hangs on interactive prompts
+            const timeoutId = setTimeout(() => {
+                log.error(`[CloudWorker] Codex process timed out after 10 minutes. Killing process.`);
+                child.kill('SIGKILL');
+                reject(new Error(`Codex process timed out after 10 minutes. Did it hang on an interactive prompt?\nOutput:\n${fullOutput}`));
+            }, 10 * 60 * 1000);
+
             child.stdout.on('data', (data) => {
                 const chunk = data.toString();
                 fullOutput += chunk;
@@ -255,6 +262,7 @@ ${prompt}
             });
 
             child.on('close', (code) => {
+                clearTimeout(timeoutId);
                 if (code === 0) {
                     log.info(`[CloudWorker] Codex execution finished successfully.`);
                     resolve(fullOutput);
@@ -264,6 +272,7 @@ ${prompt}
             });
 
             child.on('error', (err) => {
+                clearTimeout(timeoutId);
                 reject(err);
             });
         });
