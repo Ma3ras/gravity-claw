@@ -207,7 +207,7 @@ export async function syncWorkspaceBack(message: string, cloneDir: string): Prom
     }
 }
 
-export async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<void> {
+export async function runCodexAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<string> {
     log.info(`[CloudWorker] Sending task to Codex CLI...`);
 
     try {
@@ -233,27 +233,33 @@ ${prompt}
 `;
         log.debug(`[CloudWorker] Executing Codex CLI in ${cwd}...`);
 
-        await new Promise<void>((resolve, reject) => {
+        return await new Promise<string>((resolve, reject) => {
             const child = spawn("codex", ["exec", "--sandbox", "danger-full-access", strictInstructions], {
                 shell: process.platform === 'win32',
                 cwd: cwd,
                 env: { ...process.env }
             });
 
+            let fullOutput = "";
+
             child.stdout.on('data', (data) => {
+                const chunk = data.toString();
+                fullOutput += chunk;
                 process.stdout.write(data);
             });
 
             child.stderr.on('data', (data) => {
+                const chunk = data.toString();
+                fullOutput += chunk;
                 process.stderr.write(data);
             });
 
             child.on('close', (code) => {
                 if (code === 0) {
                     log.info(`[CloudWorker] Codex execution finished successfully.`);
-                    resolve();
+                    resolve(fullOutput);
                 } else {
-                    reject(new Error(`Codex process exited with code ${code} `));
+                    reject(new Error(`Codex process exited with code ${code} \nOutput:\n${fullOutput}`));
                 }
             });
 

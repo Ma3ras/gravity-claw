@@ -28,7 +28,7 @@ export interface VibeOptions {
     cloneDir: string;
     taskId: number;
     db: Client;
-    developerRunCallback: (prompt: string, relativePath: string, cloneDir: string) => Promise<void>;
+    developerRunCallback: (prompt: string, relativePath: string, cloneDir: string) => Promise<string>;
     syncCallback: (message: string, cloneDir: string) => Promise<boolean>;
 }
 
@@ -110,6 +110,7 @@ Example:
         let iteration = 1;
         let lastStepName = "";
         let baseCommitHash = "HEAD";
+        let previousRejectionReason = "";
 
         while (keepRunning) {
             if (iteration > 300) {
@@ -142,6 +143,7 @@ Example:
                     baseCommitHash = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
                 }
                 lastStepName = stepName;
+                previousRejectionReason = ""; // Reset rejection reason for new tasks
             }
 
             await updateTaskStatus(db, taskId, `Developer executing step: ${stepName} (Iteration ${iteration})`);
@@ -151,13 +153,19 @@ Example:
 You are the Developer. You have ARCHITECTURE.md to guide you.
 Your current strict task is: "${stepName}"
 IMPORTANT: You MUST complete this specific checklist item, verify compilation using 'npm run build' or similar, and fix any errors before considering it done. Do NOT try to do the entire project at once. Do NOT check off the item in TODO.md, the Orchestrator will do it.
+${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR THIS REASON:\n${previousRejectionReason}\n\nFIX THIS NOW!` : ""}
             `;
 
+            let devOutputStr = "";
             try {
-                await developerRunCallback(devPrompt, relativePath, cloneDir);
+                const result = await developerRunCallback(devPrompt, relativePath, cloneDir);
+                if (typeof result === "string") {
+                    devOutputStr = result;
+                }
                 await syncCallback(`Developer attempted: ${stepName}`, cloneDir);
             } catch (e: any) {
                 log.warn(`[VibeOrchestrator] Task #${taskId} Developer threw error:`, { error: String(e) });
+                devOutputStr = "Developer process crashed or threw an error.";
             }
 
             // 2b. Reviewer Agent Execution
@@ -175,14 +183,21 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
 
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
-Here is the Git Diff of their changes:
-${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
-Analyze the diff. Did the Developer successfully make the necessary changes for the task?
+Here is the Developer's console output (what they actually did and thought):
+\`\`\`
+${devOutputStr.substring(0, 4000)}
+\`\`\`
+
+Here is the Git Diff of their changes:
+${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications or only created empty directories which git ignores.)" : gitDiffStr.substring(0, 10000)}
+
+Analyze the diff AND the developer's console output. Did the Developer successfully make the necessary changes for the task?
 IMPORTANT RULES FOR EMPTY DIFFS:
 1. If the task was merely to read, analyze, or plan, and the diff is empty, you MUST reply APPROVED.
 2. If the task was to install a dependency or configure something (e.g. Tailwind), and the diff is empty, ASSUME the Developer checked and found it was ALREADY INSTALLED or configured. Do NOT reject it. You MUST reply APPROVED.
-3. If the diff is empty for any other reason, consider if the task might have already been completed in a previous step. If so, reply APPROVED.
+3. If the task was to create DIRECTORIES, remember that git ignores empty directories! If the Developer output says they created the directories, you MUST reply APPROVED even if the diff is empty!
+4. If the diff is empty for any other reason, consider if the task might have already been completed in a previous step. If so, reply APPROVED.
 
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
 If REJECTED, append a brief explanation of what is missing or broken.
@@ -197,17 +212,15 @@ If REJECTED, append a brief explanation of what is missing or broken.
 
             if (reviewOut.startsWith("REJECTED")) {
                 log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer rejected step: ${stepName}`);
-                await updateTaskStatus(db, taskId, `Reviewer rejected step based on: ${reviewOut.substring(0, 50)}... Developer will retry.`);
+                await updateTaskStatus(db, taskId, `Reviewer rejected step. Developer will retry.`);
 
-                fs.writeFileSync(path.join(cwd, "REVIEW_FEEDBACK.md"), `The Reviewer rejected your previous attempt for the following reason:\n${reviewOut}\n\nPlease fix this.`);
-                await syncCallback(`Added REVIEW_FEEDBACK.md`, cloneDir);
+                previousRejectionReason = reviewOut;
             } else {
                 log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer APPROVED step: ${stepName}`);
                 lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
                 fs.writeFileSync(path.join(cwd, "TODO.md"), lines.join("\n"));
-                if (fs.existsSync(path.join(cwd, "REVIEW_FEEDBACK.md"))) {
-                    fs.rmSync(path.join(cwd, "REVIEW_FEEDBACK.md"));
-                }
+
+                previousRejectionReason = ""; // Clear on success
                 await syncCallback(`Reviewer approved step: ${stepName}`, cloneDir);
             }
 
