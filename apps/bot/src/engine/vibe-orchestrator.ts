@@ -61,7 +61,20 @@ Example:
         messages: [{ role: "system", content: archPrompt }],
     });
 
-    let archOutput = archResponse.choices[0].message.content || "";
+    const choiceObject = archResponse.choices[0].message;
+    // DeepSeek R1 and some other models might put their output inside `reasoning_content` or `thought` fields.
+    // The official TS type definition might not include it, so we cast to any to read it safely.
+    const rawContent: string = choiceObject.content || "";
+    const reasoningContent: string = (choiceObject as any).reasoning_content || "";
+
+    let archOutput = rawContent;
+    if (reasoningContent && !rawContent) {
+        // If it ONLY generated reasoning, use the reasoning as the output since the fallback regex will process it.
+        archOutput = reasoningContent;
+    } else if (reasoningContent && rawContent) {
+        archOutput = `<think>\n${reasoningContent}\n</think>\n\n${rawContent}`;
+    }
+
     // Save raw output for debugging
     fs.writeFileSync(path.join(cwd, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
 
