@@ -41,20 +41,15 @@ export async function runVibeCodingSession(options: VibeOptions): Promise<boolea
     log.info(`[VibeOrchestrator] Task #${taskId} - Starting Architect Phase`);
 
     const archPrompt = `
-You are the Lead Software Architect. 
+You are the Lead Software Architect.
 The user wants to build the following:
 "${prompt}"
 
-Please generate TWO files for the repository to guide the Developer agent. 
-Format your response exactly like this:
+Please generate an execution plan for the Developer agent. 
+1. First, write down the Architecture, technical stack, and styling rules.
+2. Then, write a strict checklist of sequential steps to build the app.
 
-===FILE:ARCHITECTURE.md===
-(Write the technical stack, styling rules, and system architecture here)
-===END===
-
-===FILE:TODO.md===
-(Write a strict checklist of sequential steps using standard markdown checkboxes '- [ ] Step 1: ...')
-===END===
+CRITICAL INSTRUCTION: You MUST use standard markdown checkboxes ('- [ ]') for your checklist steps. Do NOT wrap your output in special tags like ===FILE===. Just reply with the Markdown text.
     `;
 
     const archResponse = await openai.chat.completions.create({
@@ -66,27 +61,18 @@ Format your response exactly like this:
     // Save raw output for debugging
     fs.writeFileSync(path.join(cwd, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
 
-    // More resilient parsing: catch everything after the header until the next header, ===END===, or end of string.
-    let archMatch = archOutput.match(/===FILE:ARCHITECTURE\.md===\s*([\s\S]*?)(?:===END===|===FILE|$)/);
-    let todoMatch = archOutput.match(/===FILE:TODO\.md===\s*([\s\S]*?)(?:===END===|===FILE|$)/);
-
-    // If LLM wrapped it in markdown code blocks like ```markdown ===FILE:TODO.md=== ... ```
-    if (!archMatch) archMatch = archOutput.match(/ARCHITECTURE\.md\**\n([\s\S]*?)(?:===END===|===FILE|$)/i);
-    if (!todoMatch) todoMatch = archOutput.match(/TODO\.md\**\n([\s\S]*?)(?:===END===|===FILE|$)/i);
-
-    if (archMatch && archMatch[1]) {
-        fs.writeFileSync(path.join(cwd, "ARCHITECTURE.md"), archMatch[1].trim());
-    }
-
-    // Check if we actually got steps out of it
-    if (!todoMatch || !todoMatch[1] || !todoMatch[1].includes("- [ ]")) {
-        log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate a valid TODO.md. Aborting session.`);
+    // Fallback: If no checkboxes exist, the LLM completely failed.
+    if (!archOutput.includes("- [ ]")) {
+        log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate checkboxes. Aborting.`);
         log.warn(`[VibeOrchestrator] Raw Architect Output was:\n${archOutput.substring(0, 500)}...`);
-        await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate TODO.md. Please try a different prompt or simpler instructions.`);
+        await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate a checklist. Please try a different prompt or simpler instructions.`);
         return false;
     }
 
-    fs.writeFileSync(path.join(cwd, "TODO.md"), todoMatch[1].trim());
+    // Foolproof parsing: We simply inject the ENTIRE output into both files.
+    // The Developer loop iterates by blindly searching for '- [ ]' in TODO.md, ignoring everything else!
+    fs.writeFileSync(path.join(cwd, "ARCHITECTURE.md"), archOutput);
+    fs.writeFileSync(path.join(cwd, "TODO.md"), archOutput);
 
     // Initial commit of the plan
     await syncCallback(`Architect created ARCHITECTURE.md and TODO.md`, cloneDir);
