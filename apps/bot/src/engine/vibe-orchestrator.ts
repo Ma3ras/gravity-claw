@@ -32,7 +32,7 @@ export interface VibeOptions {
     syncCallback: (message: string, cloneDir: string) => Promise<boolean>;
 }
 
-export async function runVibeCodingSession(options: VibeOptions): Promise<void> {
+export async function runVibeCodingSession(options: VibeOptions): Promise<boolean> {
     const { prompt, relativePath, cloneDir, taskId, db, developerRunCallback, syncCallback } = options;
     const cwd = relativePath ? path.join(cloneDir, relativePath) : cloneDir;
 
@@ -63,17 +63,27 @@ Format your response exactly like this:
     });
 
     const archOutput = archResponse.choices[0].message.content || "";
-    const archMatch = archOutput.match(/===FILE:ARCHITECTURE\.md===\s*([\s\S]*?)\s*===END===/);
-    const todoMatch = archOutput.match(/===FILE:TODO\.md===\s*([\s\S]*?)\s*===END===/);
+    // Save raw output for debugging
+    fs.writeFileSync(path.join(cwd, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
+
+    // More resilient parsing: catch everything after the header until the next header, ===END===, or end of string.
+    let archMatch = archOutput.match(/===FILE:ARCHITECTURE\.md===\s*([\s\S]*?)(?:===END===|===FILE|$)/);
+    let todoMatch = archOutput.match(/===FILE:TODO\.md===\s*([\s\S]*?)(?:===END===|===FILE|$)/);
+
+    // If LLM wrapped it in markdown code blocks like ```markdown ===FILE:TODO.md=== ... ```
+    if (!archMatch) archMatch = archOutput.match(/ARCHITECTURE\.md\**\n([\s\S]*?)(?:===END===|===FILE|$)/i);
+    if (!todoMatch) todoMatch = archOutput.match(/TODO\.md\**\n([\s\S]*?)(?:===END===|===FILE|$)/i);
 
     if (archMatch && archMatch[1]) {
         fs.writeFileSync(path.join(cwd, "ARCHITECTURE.md"), archMatch[1].trim());
     }
 
+    // Check if we actually got steps out of it
     if (!todoMatch || !todoMatch[1] || !todoMatch[1].includes("- [ ]")) {
         log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate a valid TODO.md. Aborting session.`);
+        log.warn(`[VibeOrchestrator] Raw Architect Output was:\n${archOutput.substring(0, 500)}...`);
         await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate TODO.md. Please try a different prompt or simpler instructions.`);
-        return;
+        return false;
     }
 
     fs.writeFileSync(path.join(cwd, "TODO.md"), todoMatch[1].trim());
@@ -262,6 +272,7 @@ APPROVED
     }
 
     await updateTaskStatus(db, taskId, `Vibe Coding Session finished completely!`);
+    return true;
 }
 
 async function updateTaskStatus(db: Client, id: number, message: string) {

@@ -469,7 +469,7 @@ async function startWorker() {
 
             // 2. Run Vibe Coding Multi-Agent Orchestrator
             const { runVibeCodingSession } = await import("./engine/vibe-orchestrator.js");
-            await runVibeCodingSession({
+            const success = await runVibeCodingSession({
                 prompt,
                 relativePath,
                 cloneDir,
@@ -478,6 +478,12 @@ async function startWorker() {
                 developerRunCallback: runCodexAgent,
                 syncCallback: syncWorkspaceBack
             });
+
+            if (!success) {
+                // The Orchestrator failed internally (e.g. Architect regex failed).
+                // Do not mark as completed, throw an error to properly fail the task.
+                throw new Error("Vibe Orchestrator aborted the session (see orchestrator messages for details).");
+            }
 
             // 3. Deploy to Netlify (non-blocking)
             deployToNetlify(cloneDir).then(url => {
