@@ -166,7 +166,7 @@ IMPORTANT: You MUST complete this specific checklist item, verify compilation us
             // Exclude huge directories and lockfiles from diff so we don't crash Node's stdout Buffer (e.g. 50MB node_modules diffs)
             let gitDiffStr = "";
             try {
-                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build" ":!REVIEW_FEEDBACK.md"`, { cwd });
+                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD -- . ":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build" ":!**/REVIEW_FEEDBACK.md"`, { cwd });
                 gitDiffStr = gitDiff.stdout;
             } catch (e) {
                 log.warn(`[VibeOrchestrator] Git diff failed:`, { error: String(e) });
