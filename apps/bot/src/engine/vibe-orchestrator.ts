@@ -63,15 +63,20 @@ Format your response exactly like this:
     });
 
     const archOutput = archResponse.choices[0].message.content || "";
-    const archMatch = archOutput.match(/===FILE:ARCHITECTURE\.md===\n([\s\S]*?)\n===END===/);
-    const todoMatch = archOutput.match(/===FILE:TODO\.md===\n([\s\S]*?)\n===END===/);
+    const archMatch = archOutput.match(/===FILE:ARCHITECTURE\.md===\s*([\s\S]*?)\s*===END===/);
+    const todoMatch = archOutput.match(/===FILE:TODO\.md===\s*([\s\S]*?)\s*===END===/);
 
     if (archMatch && archMatch[1]) {
         fs.writeFileSync(path.join(cwd, "ARCHITECTURE.md"), archMatch[1].trim());
     }
-    if (todoMatch && todoMatch[1]) {
-        fs.writeFileSync(path.join(cwd, "TODO.md"), todoMatch[1].trim());
+
+    if (!todoMatch || !todoMatch[1] || !todoMatch[1].includes("- [ ]")) {
+        log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate a valid TODO.md. Aborting session.`);
+        await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate TODO.md. Please try a different prompt or simpler instructions.`);
+        return;
     }
+
+    fs.writeFileSync(path.join(cwd, "TODO.md"), todoMatch[1].trim());
 
     // Initial commit of the plan
     await syncCallback(`Architect created ARCHITECTURE.md and TODO.md`, cloneDir);
