@@ -49,7 +49,11 @@ Please generate an execution plan for the Developer agent.
 1. First, write down the Architecture, technical stack, and styling rules.
 2. Then, write a strict checklist of sequential steps to build the app.
 
-CRITICAL INSTRUCTION: You MUST use standard markdown checkboxes ('- [ ]') for your checklist steps. Do NOT wrap your output in special tags like ===FILE===. Just reply with the Markdown text.
+CRITICAL INSTRUCTION: Your checklist MUST use EXACTLY the "- [ ] " syntax!
+Example:
+- [ ] Step 1: Initialize project
+- [ ] Step 2: Install dependencies
+- [ ] Step 3: Write code
     `;
 
     const archResponse = await openai.chat.completions.create({
@@ -57,16 +61,22 @@ CRITICAL INSTRUCTION: You MUST use standard markdown checkboxes ('- [ ]') for yo
         messages: [{ role: "system", content: archPrompt }],
     });
 
-    const archOutput = archResponse.choices[0].message.content || "";
+    let archOutput = archResponse.choices[0].message.content || "";
     // Save raw output for debugging
     fs.writeFileSync(path.join(cwd, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
 
-    // Fallback: If no checkboxes exist, the LLM completely failed.
+    // Fallback: If no checkboxes exist, the LLM completely failed to follow the format.
     if (!archOutput.includes("- [ ]")) {
-        log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate checkboxes. Aborting.`);
-        log.warn(`[VibeOrchestrator] Raw Architect Output was:\n${archOutput.substring(0, 500)}...`);
-        await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate a checklist. Please try a different prompt or simpler instructions.`);
-        return false;
+        // Attempt to auto-fix by converting numbered lists (1. 2. 3.) or bullet points (- or *) to checkboxes
+        archOutput = archOutput.replace(/^(?:\d+\.|\-|\*)\s+(.*)$/gm, '- [ ] $1');
+
+        // If it STILL doesn't have checkboxes after the regex replace, it means it generated pure prose.
+        if (!archOutput.includes("- [ ]")) {
+            log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate checkboxes. Aborting.`);
+            log.warn(`[VibeOrchestrator] Raw Architect Output was:\n${archOutput.substring(0, 500)}...`);
+            await updateTaskStatus(db, taskId, `ERROR: Architect failed to generate a checklist. Please try a different prompt or simpler instructions.`);
+            return false;
+        }
     }
 
     // Foolproof parsing: We simply inject the ENTIRE output into both files.
