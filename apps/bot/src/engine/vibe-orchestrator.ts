@@ -111,6 +111,8 @@ Example:
         let lastStepName = "";
         let baseCommitHash = "HEAD";
         let previousRejectionReason = "";
+        let stepAttempts = 0;
+        const MAX_STEP_ATTEMPTS = 5; // Prevent infinite reject loops on a single step
 
         while (keepRunning) {
             if (iteration > 300) {
@@ -144,6 +146,7 @@ Example:
                 }
                 lastStepName = stepName;
                 previousRejectionReason = ""; // Reset rejection reason for new tasks
+                stepAttempts = 0; // Reset retry counter for new tasks
             }
 
             await updateTaskStatus(db, taskId, `Developer executing step: ${stepName} (Iteration ${iteration})`);
@@ -181,12 +184,31 @@ ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR 
                 gitDiffStr = "Error reading git diff. The developer may not have committed any new files.";
             }
 
+            // CRITICAL: Use the LAST 4000 chars of output, not the first!
+            // Build verification output (npm run build, tsc, etc.) is always at the END.
+            // Using substring(0, 4000) was cutting off the proof of success.
+            const devOutputTrimmed = devOutputStr.length > 6000
+                ? `[...truncated ${devOutputStr.length - 6000} chars...]\n` + devOutputStr.substring(devOutputStr.length - 6000)
+                : devOutputStr;
+
+            // Auto-approve if we've hit the retry limit to prevent burning tokens
+            if (stepAttempts >= MAX_STEP_ATTEMPTS) {
+                log.warn(`[VibeOrchestrator] Task #${taskId} - Step '${stepName}' hit ${MAX_STEP_ATTEMPTS} retry attempts. Force-approving to prevent infinite loop.`);
+                lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
+                fs.writeFileSync(path.join(cwd, "TODO.md"), lines.join("\n"));
+                previousRejectionReason = "";
+                stepAttempts = 0;
+                await syncCallback(`Force-approved step after ${MAX_STEP_ATTEMPTS} retries: ${stepName}`, cloneDir);
+                iteration++;
+                continue;
+            }
+
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
 
 Here is the Developer's console output (what they actually did and thought):
 \`\`\`
-${devOutputStr.substring(0, 4000)}
+${devOutputTrimmed}
 \`\`\`
 
 Here is the Git Diff of their changes:
@@ -198,6 +220,7 @@ IMPORTANT RULES FOR EMPTY DIFFS:
 2. If the task was to install a dependency or configure something (e.g. Tailwind), and the diff is empty, ASSUME the Developer checked and found it was ALREADY INSTALLED or configured. Do NOT reject it. You MUST reply APPROVED.
 3. If the task was to create DIRECTORIES, remember that git ignores empty directories! If the Developer output says they created the directories, you MUST reply APPROVED even if the diff is empty!
 4. If the diff is empty for any other reason, consider if the task might have already been completed in a previous step. If so, reply APPROVED.
+5. If the developer's console output shows a SUCCESSFUL build or type-check (e.g. 'built in X seconds', 'exit code 0', '✓'), and the diff is empty, the task was ALREADY COMPLETE. You MUST reply APPROVED.
 
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
 If REJECTED, append a brief explanation of what is missing or broken.
@@ -211,8 +234,9 @@ If REJECTED, append a brief explanation of what is missing or broken.
             const reviewOut = reviewResponse.choices[0].message.content || "APPROVED";
 
             if (reviewOut.startsWith("REJECTED")) {
-                log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer rejected step: ${stepName}`);
-                await updateTaskStatus(db, taskId, `Reviewer rejected step. Developer will retry.`);
+                stepAttempts++;
+                log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer rejected step: ${stepName} (attempt ${stepAttempts}/${MAX_STEP_ATTEMPTS})`);
+                await updateTaskStatus(db, taskId, `Reviewer rejected step. Developer will retry (${stepAttempts}/${MAX_STEP_ATTEMPTS}).`);
 
                 previousRejectionReason = reviewOut;
             } else {
