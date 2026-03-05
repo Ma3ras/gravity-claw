@@ -163,7 +163,10 @@ export async function syncWorkspaceBack(message: string, cloneDir: string): Prom
             return false;
         }
 
-        await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
+        // Escape quotes, backticks, dollar signs, and backslashes to prevent shell injection / syntax errors.
+        // e.g. "Create `index.html`" was previously breaking the shell because backticks act as command substitution in /bin/sh
+        const escapedMessage = message.replace(/(["`$\\])/g, '\\$1');
+        await execPromise(`git commit -m "feat(ai): ${escapedMessage}"`, { cwd: cloneDir });
 
         // Extremely important: Sync with remote before pushing to avoid non-fast-forward errors
         // Step 1: Fetch the latest remote state
