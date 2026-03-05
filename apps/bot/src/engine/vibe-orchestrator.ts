@@ -150,13 +150,13 @@ Do NOT group files or components into a single step. EVERY single React componen
             await updateTaskStatus(db, taskId, `Developer executing step: ${stepName} (Iteration ${iteration})`);
 
             // 2a. Developer Agent Execution
-            const devPrompt = \`
+            const devPrompt = `
 You are the Developer. You have ARCHITECTURE.md to guide you.
-Your current strict task is: "\${stepName}"
+Your current strict task is: "${stepName}"
 IMPORTANT: You MUST complete this specific checklist item, verify compilation using 'npm run build' or similar, and fix any errors before considering it done. Do NOT try to do the entire project at once. Do NOT check off the item in TODO.md, the Orchestrator will do it.
 CRITICAL SCAFFOLDING RULE: When creating a new project (e.g., Vite/Next.js/React), be aware that the target directory is NOT empty (it contains architecture docs). You MUST force the installation or handle the "Directory not empty" check (e.g., \`npm create vite@latest . -- --template react-ts\`). ALWAYS verify \`package.json\` exists after attempting to create the project.
-\${previousRejectionReason ? \`\\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR THIS REASON:\\n\${previousRejectionReason}\\n\\nFIX THIS NOW!\` : ""}
-            \`;
+${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR THIS REASON:\n${previousRejectionReason}\n\nFIX THIS NOW!` : ""}
+            `;
 
             let devOutputStr = "";
             try {
@@ -164,19 +164,19 @@ CRITICAL SCAFFOLDING RULE: When creating a new project (e.g., Vite/Next.js/React
                 if (typeof result === "string") {
                     devOutputStr = result;
                 }
-                await syncCallback(`Developer attempted: ${ stepName } `, cloneDir);
+                await syncCallback(`Developer attempted: ${stepName} `, cloneDir);
             } catch (e: any) {
-                log.warn(`[VibeOrchestrator] Task #${ taskId } Developer threw error: `, { error: String(e) });
+                log.warn(`[VibeOrchestrator] Task #${taskId} Developer threw error: `, { error: String(e) });
                 devOutputStr = "Developer process crashed or threw an error.";
             }
 
             // 2b. Reviewer Agent Execution
-            await updateTaskStatus(db, taskId, `Reviewer evaluating step: ${ stepName } `);
+            await updateTaskStatus(db, taskId, `Reviewer evaluating step: ${stepName} `);
 
             // Exclude huge directories and lockfiles from diff so we don't crash Node's stdout Buffer (e.g. 50MB node_modules diffs)
             let gitDiffStr = "";
             try {
-                const gitDiff = await execPromise(`git diff ${ baseCommitHash } HEAD-- .":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build" ":!**/REVIEW_FEEDBACK.md"`, { cwd });
+                const gitDiff = await execPromise(`git diff ${baseCommitHash} HEAD-- .":!node_modules" ":!.next" ":!package-lock.json" ":!yarn.lock" ":!pnpm-lock.yaml" ":!dist" ":!build" ":!**/REVIEW_FEEDBACK.md"`, { cwd });
                 gitDiffStr = gitDiff.stdout;
             } catch (e) {
                 log.warn(`[VibeOrchestrator] Git diff failed: `, { error: String(e) });
@@ -187,17 +187,17 @@ CRITICAL SCAFFOLDING RULE: When creating a new project (e.g., Vite/Next.js/React
             // Build verification output (npm run build, tsc, etc.) is always at the END.
             // Using substring(0, 4000) was cutting off the proof of success.
             const devOutputTrimmed = devOutputStr.length > 6000
-                ? `[...truncated ${ devOutputStr.length - 6000 } chars...]\n` + devOutputStr.substring(devOutputStr.length - 6000)
+                ? `[...truncated ${devOutputStr.length - 6000} chars...]\n` + devOutputStr.substring(devOutputStr.length - 6000)
                 : devOutputStr;
 
             // Auto-approve if we've hit the retry limit to prevent burning tokens
             if (stepAttempts >= MAX_STEP_ATTEMPTS) {
-                log.warn(`[VibeOrchestrator] Task #${ taskId } - Step '${stepName}' hit ${ MAX_STEP_ATTEMPTS } retry attempts.Force - approving to prevent infinite loop.`);
+                log.warn(`[VibeOrchestrator] Task #${taskId} - Step '${stepName}' hit ${MAX_STEP_ATTEMPTS} retry attempts.Force - approving to prevent infinite loop.`);
                 lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
                 fs.writeFileSync(path.join(cloneDir, "TODO.md"), lines.join("\n"));
                 previousRejectionReason = "";
                 stepAttempts = 0;
-                await syncCallback(`Force - approved step after ${ MAX_STEP_ATTEMPTS } retries: ${ stepName } `, cloneDir);
+                await syncCallback(`Force - approved step after ${MAX_STEP_ATTEMPTS} retries: ${stepName} `, cloneDir);
                 iteration++;
                 continue;
             }
@@ -207,7 +207,7 @@ CRITICAL SCAFFOLDING RULE: When creating a new project (e.g., Vite/Next.js/React
 You are the Reviewer.The Developer just tried to complete this task: "${stepName}".
 
 Here is the Git Diff of their changes:
-${ gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000) }
+${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
 Analyze the diff.Did the Developer successfully make the necessary code changes for the task ?
                 RULES :
@@ -233,28 +233,28 @@ If REJECTED, append a brief explanation of what is missing or broken.
 
             if (reviewOut.startsWith("REJECTED")) {
                 stepAttempts++;
-                log.info(`[VibeOrchestrator] Task #${ taskId } - Reviewer rejected step: ${ stepName } (attempt ${ stepAttempts }/${MAX_STEP_ATTEMPTS})`);
-                await updateTaskStatus(db, taskId, `Reviewer rejected step.Developer will retry(${ stepAttempts } / ${ MAX_STEP_ATTEMPTS }).`);
+                log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer rejected step: ${stepName} (attempt ${stepAttempts}/${MAX_STEP_ATTEMPTS})`);
+                await updateTaskStatus(db, taskId, `Reviewer rejected step.Developer will retry(${stepAttempts} / ${MAX_STEP_ATTEMPTS}).`);
 
                 previousRejectionReason = reviewOut;
             } else {
-                log.info(`[VibeOrchestrator] Task #${ taskId } - Reviewer APPROVED step: ${ stepName } `);
+                log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer APPROVED step: ${stepName} `);
                 lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
                 fs.writeFileSync(path.join(cloneDir, "TODO.md"), lines.join("\n"));
 
                 previousRejectionReason = ""; // Clear on success
-                await syncCallback(`Reviewer approved step: ${ stepName } `, cloneDir);
+                await syncCallback(`Reviewer approved step: ${stepName} `, cloneDir);
             }
 
             iteration++;
         }
 
         // Phase 3: Browser QA Agent & Critic
-        log.info(`[VibeOrchestrator] Task #${ taskId } - Starting Critic QA Loop ${ criticLoops + 1 }/${MAX_CRITIC_LOOPS}`);
-            await updateTaskStatus(db, taskId, `QA Agent is testing the application (Cycle ${criticLoops + 1}/${MAX_CRITIC_LOOPS})...`);
+        log.info(`[VibeOrchestrator] Task #${taskId} - Starting Critic QA Loop ${criticLoops + 1}/${MAX_CRITIC_LOOPS}`);
+        await updateTaskStatus(db, taskId, `QA Agent is testing the application (Cycle ${criticLoops + 1}/${MAX_CRITIC_LOOPS})...`);
 
-            // 3a. Browser QA Agent (Codex)
-            const qaPrompt = `
+        // 3a. Browser QA Agent (Codex)
+        const qaPrompt = `
 You are the elite Browser QA & Testing Agent.
 Your job is to test the application in this repository.
 1. Check package.json to see how to start the development server (e.g. 'npm run dev' or 'npm start').
@@ -265,27 +265,27 @@ Your job is to test the application in this repository.
 6. Kill the background server process when you are done.
         `;
 
-            try {
-                await developerRunCallback(qaPrompt, relativePath, cloneDir);
-                await syncCallback(`QA Agent created QA_REPORT.md`, cloneDir);
-            } catch (e) {
-                log.warn(`[VibeOrchestrator] QA Agent failed:`, { error: String(e) });
-            }
+        try {
+            await developerRunCallback(qaPrompt, relativePath, cloneDir);
+            await syncCallback(`QA Agent created QA_REPORT.md`, cloneDir);
+        } catch (e) {
+            log.warn(`[VibeOrchestrator] QA Agent failed:`, { error: String(e) });
+        }
 
-            // QA report always goes to root too
-            const qaReportPath = path.join(cloneDir, "QA_REPORT.md");
-            const qaReport = fs.existsSync(qaReportPath) ? fs.readFileSync(qaReportPath, "utf-8") : "PERFECT";
+        // QA report always goes to root too
+        const qaReportPath = path.join(cloneDir, "QA_REPORT.md");
+        const qaReport = fs.existsSync(qaReportPath) ? fs.readFileSync(qaReportPath, "utf-8") : "PERFECT";
 
-            if (qaReport.includes("PERFECT") || qaReport.trim() === "") {
-                log.info(`[VibeOrchestrator] Critic QA passed (PERFECT).`);
-                break;
-            }
+        if (qaReport.includes("PERFECT") || qaReport.trim() === "") {
+            log.info(`[VibeOrchestrator] Critic QA passed (PERFECT).`);
+            break;
+        }
 
-            // 3b. Critic Agent
-            await updateTaskStatus(db, taskId, `Critic Reviewing QA Report...`);
-            const arch = fs.existsSync(path.join(cloneDir, "ARCHITECTURE.md")) ? fs.readFileSync(path.join(cloneDir, "ARCHITECTURE.md"), "utf-8") : "";
+        // 3b. Critic Agent
+        await updateTaskStatus(db, taskId, `Critic Reviewing QA Report...`);
+        const arch = fs.existsSync(path.join(cloneDir, "ARCHITECTURE.md")) ? fs.readFileSync(path.join(cloneDir, "ARCHITECTURE.md"), "utf-8") : "";
 
-            const criticPrompt = `
+        const criticPrompt = `
 You are the Lead Critic.
 The user originally requested: "${prompt}"
 The Architect designed: 
@@ -309,61 +309,61 @@ If the application is excellent and the QA report issues are extremely minor or 
 APPROVED
         `;
 
-            // Run Critic through Codex CLI (same auth as Developer)
-            let criticOut = "APPROVED";
-            try {
-                criticOut = await developerRunCallback(criticPrompt, relativePath, cloneDir);
-            } catch (e) {
-                log.warn(`[VibeOrchestrator] Critic Codex run failed, defaulting to APPROVED`);
-                criticOut = "APPROVED";
-            }
-
-            if (criticOut.includes("APPROVED")) {
-                log.info(`[VibeOrchestrator] Task #${taskId} - Critic APPROVED the final build.`);
-                break;
-            }
-
-            // Critic Rejected -> we must restart Dev loop
-            log.info(`[VibeOrchestrator] Task #${taskId} - Critic requested improvements. Looping Developer.`);
-
-            const impMatch = criticOut.match(/===FILE:IMPROVEMENTS\.md===\n([\s\S]*?)\n===END===/);
-            const appendMatch = criticOut.match(/===APPEND_TODO===\n([\s\S]*?)\n===END===/);
-
-            if (impMatch && impMatch[1]) {
-                fs.writeFileSync(path.join(cloneDir, "IMPROVEMENTS.md"), impMatch[1].trim());
-            }
-            if (appendMatch && appendMatch[1]) {
-                fs.appendFileSync(path.join(cloneDir, "TODO.md"), "\n" + appendMatch[1].trim());
-                await syncCallback(`Critic appended new tasks (QA failed)`, cloneDir);
-
-                // Re-run the Phase 2 Developer Execution loop for the new items!
-                // We just let the while(keepRunning) loop handle it...
-                // Oh wait, Phase 2 is above. I need to wrap Phase 2 and 3 in a higher-level loop, or just duplicate the logic.
-                // Since this is linear, I can just recursively call something, or simply extract Phase 2 into a function.
-            }
-
-            criticLoops++;
+        // Run Critic through Codex CLI (same auth as Developer)
+        let criticOut = "APPROVED";
+        try {
+            criticOut = await developerRunCallback(criticPrompt, relativePath, cloneDir);
+        } catch (e) {
+            log.warn(`[VibeOrchestrator] Critic Codex run failed, defaulting to APPROVED`);
+            criticOut = "APPROVED";
         }
 
-        await updateTaskStatus(db, taskId, `Vibe Coding Session finished completely!`);
-        return true;
+        if (criticOut.includes("APPROVED")) {
+            log.info(`[VibeOrchestrator] Task #${taskId} - Critic APPROVED the final build.`);
+            break;
+        }
+
+        // Critic Rejected -> we must restart Dev loop
+        log.info(`[VibeOrchestrator] Task #${taskId} - Critic requested improvements. Looping Developer.`);
+
+        const impMatch = criticOut.match(/===FILE:IMPROVEMENTS\.md===\n([\s\S]*?)\n===END===/);
+        const appendMatch = criticOut.match(/===APPEND_TODO===\n([\s\S]*?)\n===END===/);
+
+        if (impMatch && impMatch[1]) {
+            fs.writeFileSync(path.join(cloneDir, "IMPROVEMENTS.md"), impMatch[1].trim());
+        }
+        if (appendMatch && appendMatch[1]) {
+            fs.appendFileSync(path.join(cloneDir, "TODO.md"), "\n" + appendMatch[1].trim());
+            await syncCallback(`Critic appended new tasks (QA failed)`, cloneDir);
+
+            // Re-run the Phase 2 Developer Execution loop for the new items!
+            // We just let the while(keepRunning) loop handle it...
+            // Oh wait, Phase 2 is above. I need to wrap Phase 2 and 3 in a higher-level loop, or just duplicate the logic.
+            // Since this is linear, I can just recursively call something, or simply extract Phase 2 into a function.
+        }
+
+        criticLoops++;
     }
 
-    async function updateTaskStatus(db: Client, id: number, message: string) {
-        try {
-            log.info(`[VibeOrchestrator] Update -> ${message}`);
-            // We push this directly to the orchestrator_messages so the user can query it via "Check Status"
-            await db.execute({
-                sql: `INSERT INTO orchestrator_messages (project_id, message, status) VALUES (?, ?, 'unread')`,
-                args: [String(id), message]
-            });
+    await updateTaskStatus(db, taskId, `Vibe Coding Session finished completely!`);
+    return true;
+}
 
-            // Also update the main task result_data to hold the current step
-            await db.execute({
-                sql: `UPDATE antigravity_tasks SET result_data = ? WHERE id = ?`,
-                args: [`Status: ${message}`, id]
-            });
-        } catch (e) { }
-    }
+async function updateTaskStatus(db: Client, id: number, message: string) {
+    try {
+        log.info(`[VibeOrchestrator] Update -> ${message}`);
+        // We push this directly to the orchestrator_messages so the user can query it via "Check Status"
+        await db.execute({
+            sql: `INSERT INTO orchestrator_messages (project_id, message, status) VALUES (?, ?, 'unread')`,
+            args: [String(id), message]
+        });
+
+        // Also update the main task result_data to hold the current step
+        await db.execute({
+            sql: `UPDATE antigravity_tasks SET result_data = ? WHERE id = ?`,
+            args: [`Status: ${message}`, id]
+        });
+    } catch (e) { }
+}
 
 
