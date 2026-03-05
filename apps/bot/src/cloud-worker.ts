@@ -272,12 +272,13 @@ ${prompt}
             });
 
             let fullOutput = "";
+            let stderrOutput = ""; // Capture stderr separately for debugging/logging
 
             // 10 minute timeout to prevent indefinite hangs on interactive prompts
             const timeoutId = setTimeout(() => {
                 log.error(`[CloudWorker] Codex process timed out after 10 minutes. Killing process.`);
                 child.kill('SIGKILL');
-                reject(new Error(`Codex process timed out after 10 minutes. Did it hang on an interactive prompt?\nOutput:\n${fullOutput}`));
+                reject(new Error(`Codex process timed out after 10 minutes.\nStdout:\n${fullOutput}\nStderr:\n${stderrOutput}`));
             }, 10 * 60 * 1000);
 
             child.stdout.on('data', (data) => {
@@ -288,7 +289,7 @@ ${prompt}
 
             child.stderr.on('data', (data) => {
                 const chunk = data.toString();
-                fullOutput += chunk;
+                stderrOutput += chunk; // Do NOT append to fullOutput!
                 process.stderr.write(data);
             });
 
