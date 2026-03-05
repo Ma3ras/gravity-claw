@@ -44,9 +44,11 @@ Please generate an execution plan for the Developer agent.
 
 CRITICAL INSTRUCTION: Your checklist MUST use EXACTLY the "- [ ] " syntax!
 Example:
+\`\`\`markdown
 - [ ] Step 1: Initialize project
 - [ ] Step 2: Install dependencies
 - [ ] Step 3: Write code
+\`\`\`
     
 CRITICAL INSTRUCTION FOR CHECKLIST GRANULARITY: 
 Do NOT group files or components into a single step. EVERY single React component, custom hook, utility file, or significant logic block MUST have its own individual step in the checklist. This ensures the Developer agent can focus safely on one file at a time.
