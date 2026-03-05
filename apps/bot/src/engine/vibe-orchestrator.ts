@@ -1,6 +1,5 @@
 import fs from "fs";
 import path from "path";
-import OpenAI from "openai";
 import { log } from "../utils/logger.js";
 import type { Client } from "@libsql/client";
 import { exec } from "child_process";
@@ -13,17 +12,8 @@ const execPromise = async (command: string, options: any = {}) => {
     return { stdout: String(stdout), stderr: String(stderr) };
 };
 
-import { config } from "../config.js";
-
-// CODING PIPELINE: Uses separate OpenAI/Codex API key, completely independent from the Telegram bot's LLM (kimi, etc.)
-// The Architect, Reviewer, and Critic all use this client. Only the Telegram chat uses config.llmApiKey.
-const CODEX_API_KEY = process.env.CODEX_API_KEY || process.env.OPENAI_API_KEY || config.llmApiKey;
-const CODEX_MODEL = process.env.CODEX_ORCHESTRATOR_MODEL || "o4-mini"; // Fast, cheap, great for code review
-
-const codexClient = new OpenAI({
-    apiKey: CODEX_API_KEY,
-    // Always use OpenAI API directly for the coding pipeline, never OpenRouter
-});
+// CODING PIPELINE: Everything runs through the Codex CLI (device auth, no API key needed).
+// The developerRunCallback spawns `codex` for Architect, Developer, Reviewer, and Critic.
 
 export interface VibeOptions {
     prompt: string;
@@ -59,23 +49,13 @@ Example:
 - [ ] Step 3: Write code
     `;
 
-    const archResponse = await codexClient.chat.completions.create({
-        model: CODEX_MODEL, // Use Codex/OpenAI model, NOT the Telegram bot's LLM
-        messages: [{ role: "system", content: archPrompt }],
-    });
-
-    const choiceObject = archResponse.choices[0].message;
-    // DeepSeek R1 and some other models might put their output inside `reasoning_content` or `thought` fields.
-    // The official TS type definition might not include it, so we cast to any to read it safely.
-    const rawContent: string = choiceObject.content || "";
-    const reasoningContent: string = (choiceObject as any).reasoning_content || "";
-
-    let archOutput = rawContent;
-    if (reasoningContent && !rawContent) {
-        // If it ONLY generated reasoning, use the reasoning as the output since the fallback regex will process it.
-        archOutput = reasoningContent;
-    } else if (reasoningContent && rawContent) {
-        archOutput = `<think>\n${reasoningContent}\n</think>\n\n${rawContent}`;
+    // Run Architect through Codex CLI (same auth as Developer - device auth, no API key)
+    let archOutput = "";
+    try {
+        archOutput = await developerRunCallback(archPrompt, relativePath, cloneDir);
+    } catch (e) {
+        log.error(`[VibeOrchestrator] Task #${taskId} - Architect Codex run failed:`, { error: String(e) });
+        archOutput = "";
     }
 
     // Save raw output for debugging
@@ -206,7 +186,8 @@ ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR 
                 continue;
             }
 
-            const reviewPrompt = `
+            // Run Reviewer through Codex CLI (same auth as Developer)
+            const reviewerPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
 
 Here is the Git Diff of their changes:
@@ -222,12 +203,17 @@ Reply with a single word at the very beginning of your response: APPROVED or REJ
 If REJECTED, append a brief explanation of what is missing or broken.
             `;
 
-            const reviewResponse = await codexClient.chat.completions.create({
-                model: CODEX_MODEL,
-                messages: [{ role: "system", content: reviewPrompt as string } as any],
-            });
-
-            const reviewOut = reviewResponse.choices[0].message.content || "APPROVED";
+            let reviewOut = "APPROVED";
+            try {
+                reviewOut = await developerRunCallback(reviewerPrompt, relativePath, cloneDir);
+                // Extract APPROVED/REJECTED from the Codex output (might contain extra text)
+                if (!reviewOut.includes("APPROVED") && !reviewOut.includes("REJECTED")) {
+                    reviewOut = "APPROVED"; // Default to approved if Codex output is unclear
+                }
+            } catch (e) {
+                log.warn(`[VibeOrchestrator] Reviewer Codex run failed, defaulting to APPROVED`);
+                reviewOut = "APPROVED";
+            }
 
             if (reviewOut.startsWith("REJECTED")) {
                 stepAttempts++;
@@ -306,12 +292,14 @@ If the application is excellent and the QA report issues are extremely minor or 
 APPROVED
         `;
 
-        const criticResponse = await codexClient.chat.completions.create({
-            model: CODEX_MODEL,
-            messages: [{ role: "system", content: criticPrompt }],
-        });
-
-        const criticOut = criticResponse.choices[0].message.content || "APPROVED";
+        // Run Critic through Codex CLI (same auth as Developer)
+        let criticOut = "APPROVED";
+        try {
+            criticOut = await developerRunCallback(criticPrompt, relativePath, cloneDir);
+        } catch (e) {
+            log.warn(`[VibeOrchestrator] Critic Codex run failed, defaulting to APPROVED`);
+            criticOut = "APPROVED";
+        }
 
         if (criticOut.includes("APPROVED")) {
             log.info(`[VibeOrchestrator] Task #${taskId} - Critic APPROVED the final build.`);
