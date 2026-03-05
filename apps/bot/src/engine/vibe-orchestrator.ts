@@ -69,6 +69,9 @@ Do NOT group files or components into a single step. EVERY single React componen
         // Attempt to auto-fix by converting numbered lists (1. 2. 3.) or bullet points (- or *) to checkboxes
         archOutput = archOutput.replace(/^(?:\d+\.|\-|\*)\s+(.*)$/gm, '- [ ] $1');
 
+        // Auto-fix lines that just start with "Step X:" without any bullets
+        archOutput = archOutput.replace(/^\s*(Step\s+\d+:.*)$/gm, '- [ ] $1');
+
         // If it STILL doesn't have checkboxes after the regex replace, it means it generated pure prose.
         if (!archOutput.includes("- [ ]")) {
             log.warn(`[VibeOrchestrator] Task #${taskId} - Architect failed to generate checkboxes. Aborting.`);
