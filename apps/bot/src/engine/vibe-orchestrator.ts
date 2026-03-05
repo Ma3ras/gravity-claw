@@ -83,6 +83,11 @@ Do NOT group files or components into a single step. EVERY single React componen
         }
     }
 
+    // Strip out the example steps if the AI parrot-copied them from the prompt
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 1:\s*Initialize project/gi, '');
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 2:\s*Install dependencies/gi, '');
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 3:\s*Write code/gi, '');
+
     // Foolproof parsing: We simply inject the ENTIRE output into both files.
     // The Developer loop iterates by blindly searching for '- [ ]' in TODO.md, ignoring everything else!
     // ALWAYS save to root repository folder, not the nested target directory.
