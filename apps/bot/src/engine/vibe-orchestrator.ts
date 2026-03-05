@@ -46,12 +46,16 @@ CRITICAL INSTRUCTION: Your checklist MUST use EXACTLY the "- [ ] " syntax!
 Example:
 \`\`\`markdown
 - [ ] Step 1: Initialize project
-- [ ] Step 2: Install dependencies
-- [ ] Step 3: Write code
+- [ ] Step 2: Install dependencies including testing libraries (Vitest/React Testing Library)
+- [ ] Step 3: Write automated test for Authentication logic
+- [ ] Step 4: Implement Authentication logic to pass the test
 \`\`\`
     
 CRITICAL INSTRUCTION FOR CHECKLIST GRANULARITY: 
 Do NOT group files or components into a single step. EVERY single React component, custom hook, utility file, or significant logic block MUST have its own individual step in the checklist. This ensures the Developer agent can focus safely on one file at a time.
+
+CRITICAL INSTRUCTION FOR TEST-DRIVEN DEVELOPMENT (TDD):
+Gravity Claw mandates absolute code quality via TDD. For every significant hook, utility, state manager, or complex UI component you plan to build, you MUST create a distinct Step to "Write the test for X" immediately BEFORE the step to "Implement X". The application must be fully covered by automated tests.
     `;
 
     // Run Architect through Codex CLI (same auth as Developer - device auth, no API key)
@@ -85,8 +89,9 @@ Do NOT group files or components into a single step. EVERY single React componen
 
     // Strip out the example steps if the AI parrot-copied them from the prompt
     archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 1:\s*Initialize project/gi, '');
-    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 2:\s*Install dependencies/gi, '');
-    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 3:\s*Write code/gi, '');
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 2:\s*Install dependencies including testing libraries \(Vitest\/React Testing Library\)/gi, '');
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 3:\s*Write automated test for Authentication logic/gi, '');
+    archOutput = archOutput.replace(/-\s*\[[ x]\]\s*Step 4:\s*Implement Authentication logic to pass the test/gi, '');
 
     // Foolproof parsing: We simply inject the ENTIRE output into both files.
     // The Developer loop iterates by blindly searching for '- [ ]' in TODO.md, ignoring everything else!
@@ -153,7 +158,12 @@ Do NOT group files or components into a single step. EVERY single React componen
             const devPrompt = `
 You are the Developer. You have ARCHITECTURE.md to guide you.
 Your current strict task is: "${stepName}"
-IMPORTANT: You MUST complete this specific checklist item, verify compilation using 'npm run build' or similar, and fix any errors before considering it done. Do NOT try to do the entire project at once. Do NOT check off the item in TODO.md, the Orchestrator will do it.
+IMPORTANT CODE & TEST REQUIREMENTS: 
+1. You MUST complete this specific checklist item gracefully.
+2. If this step involves writing logic or UI components, you MUST verify it by running \`npm run test\` (or the appropriate test command). If tests fail, YOU MUST RECURSIVELY FIX THE CODE BEFORE PROCEEDING!
+3. If this step involves writing a test, ensure the test correctly validates the intended behavior.
+4. Verify overall compilation using \`npm run build\` or similar.
+5. Do NOT try to do the entire project at once. Focus ONLY on "${stepName}". Do NOT check off the item in TODO.md, the Orchestrator will do it.
 CRITICAL SCAFFOLDING RULE: When creating a new project (e.g., Vite/Next.js/React), be aware that the target directory is NOT empty (it contains architecture docs). You MUST force the installation or handle the "Directory not empty" check (e.g., \`npm create vite@latest . -- --template react-ts\`). ALWAYS verify \`package.json\` exists after attempting to create the project.
 ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR THIS REASON:\n${previousRejectionReason}\n\nFIX THIS NOW!` : ""}
             `;
@@ -204,19 +214,23 @@ ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR 
 
             // Run Reviewer through Codex CLI (same auth as Developer)
             const reviewerPrompt = `
-You are the Reviewer.The Developer just tried to complete this task: "${stepName}".
+You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
+
+Here is the Output from the Developer's execution (build logs, test logs, etc):
+${devOutputTrimmed}
 
 Here is the Git Diff of their changes:
 ${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
-Analyze the diff.Did the Developer successfully make the necessary code changes for the task ?
-                RULES :
-                1. ONLY look at the git diff.If the diff shows correct code changes for the task, reply APPROVED.
-2. If the diff is empty, the task was ALREADY COMPLETE from a previous step.Reply APPROVED.
-3. If the diff shows incorrect, incomplete, or broken code, reply REJECTED with a brief explanation.
+Analyze the diff and execution output. Did the Developer successfully make the necessary changes AND pass the tests?
+RULES:
+1. If the execution output shows failing tests or build errors, reply REJECTED with the error summary.
+2. If the output shows successful tests/builds AND the diff shows correct code changes for the task, reply APPROVED.
+3. If the diff is empty but the task seems already completed by a previous step, reply APPROVED.
+4. If the code is buggy, incomplete, or ignores the rules, reply REJECTED with a brief explanation.
 
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
-If REJECTED, append a brief explanation of what is missing or broken.
+If REJECTED, append a brief explanation of what is missing or broken so the Developer can fix it.
             `;
 
             let reviewOut = "APPROVED";
