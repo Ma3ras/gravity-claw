@@ -21,13 +21,26 @@ triggers: plan, project, new app, new feature, brainstorm, design, architecture,
 
 2. **Discover Requirements (The BLAST Checklist)**
    - Ask clarifying questions — **ONE AT A TIME**. Never overwhelm the user.
-   - Use these 5 discovery pillars to guide your questions:
-     1. **Goal:** What is the single most important outcome? What should this DO?
-     2. **Tech & Integrations:** Any specific tech stack, APIs, or services?
-     3. **Data:** Where does the data come from? What is the input/output?
-     4. **Delivery:** New repo, existing repo, specific URL?
-     5. **Rules:** Any constraints? ("No auth", "Mobile-first")
+   - You MUST cover ALL 5 discovery pillars before moving on. Ask at minimum ONE question per pillar:
+     1. **Goal:** What is the single most important outcome? What should this DO? What features are must-have vs nice-to-have?
+     2. **Tech & Integrations:** Any specific tech stack, APIs, or services? Framework preferences? What about styling (Tailwind, CSS Modules, shadcn)?
+     3. **Data:** Where does the data come from? What is the input/output? Any database, API, or local storage?
+     4. **Delivery:** New repo or existing repo? Repo name? Deploy target (Netlify, Vercel, static)?
+     5. **Rules:** Any constraints? ("No auth", "Mobile-first", "Must work offline", performance targets)
+
+   🚫 **HARD STOP**: You are FORBIDDEN from calling `create_antigravity_task` until you have asked AND received answers for ALL 5 pillars. If the user says "just do it" or gives a short answer, dig deeper with follow-up questions for each pillar.
+
+   ✅ **Good Example** (Chess game):
+   - Q1 (Goal): "Welche Features willst du? Nur lokal 2-Spieler oder auch AI-Gegner?"
+   - Q2 (Goal follow-up): "Sollen Spezialzüge wie Rochade, En Passant, Bauernumwandlung alle dabei sein?"
+   - Q3 (Tech): "React + Vite oder Next.js? Tailwind oder CSS Modules? Soll ich shadcn/ui für die Controls nutzen?"
+   - Q4 (Data): "Soll der Spielstand lokal gespeichert werden (localStorage) oder ist es rein sessionbasiert?"
+   - Q5 (Delivery): "Neues Repo? Wie soll es heißen? Deploy auf Netlify?"
+   - Q6 (Rules): "Mobile-Support wichtig? Soll es offline funktionieren? Mindestgröße für Touch-Felder?"
    
+   ❌ **Bad Example** (What NOT to do):
+   - Q1: "Welche Features willst du?" → User: "C" → SOFORT Task erstellen ← VERBOTEN!
+
 3. **Propose 2-3 Approaches**
    - Present options with trade-offs
    - Lead with your recommendation and reasoning
@@ -36,15 +49,18 @@ triggers: plan, project, new app, new feature, brainstorm, design, architecture,
 4. **Present the Design**
    - Scale detail to complexity: short for simple, detailed for complex
    - Cover: architecture, components, data flow, tech stack
+   - Include EXACT file paths for each component
    - Ask after each section: "Does this look right?"
    - Be ready to revise
 
 5. **Get Explicit Approval Before Proceeding**
+   - The user MUST say something like "ja", "passt", "mach das", "go", "start" before you create the task
 
 ### Anti-Pattern: "This Is Too Simple To Need A Design"
-Every project goes through this process. "Simple" projects are where unexamined assumptions cause the most wasted work.
+Every project goes through this process. "Simple" projects are where unexamined assumptions cause the most wasted work. A Chess game seems "simple" but has 50+ edge cases (castling, en passant, promotion, stalemate, draw by repetition, etc.).
 
 ### Key Principles
+- **Minimum 5 questions** — one per discovery pillar, more for complex projects
 - **One question at a time** — don't overwhelm
 - **YAGNI ruthlessly** — remove unnecessary features
 - **Explore alternatives** — always 2-3 approaches before settling

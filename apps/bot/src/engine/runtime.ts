@@ -28,10 +28,21 @@ Do NOT skip phases. Do NOT immediately create a task without understanding what 
 - Ask questions ONE AT A TIME. Get explicit approval for the design.
 - Save the final project plan via \`memory_save\` for future reference.
 
+🚨 HARD QUALITY GATE — READ THIS CAREFULLY 🚨
+You are FORBIDDEN from calling create_antigravity_task until ALL of these conditions are met:
+1. You have asked the user AT LEAST 5 clarifying questions (one per discovery pillar: Goal, Tech, Data, Delivery, Rules)
+2. You have received an answer from the user for EACH question
+3. You have proposed 2-3 alternative approaches with trade-offs
+4. You have presented the full design (architecture, components, data flow, tech stack)
+5. The user has EXPLICITLY approved the design (e.g. "ja", "passt", "mach das", "looks good")
+If you skip ANY of these steps, the resulting plan will be LOW QUALITY and the project will FAIL.
+The extra 2-3 minutes of thorough questioning saves HOURS of garbage output.
+
 --- PHASE 3: A — ANTIGRAVITY (Task Delegation) ---
 Only AFTER the user approves the detailed design from Phase 1/2:
 - Write ONE comprehensive prompt based on your research and choices
 - Include specific architectures, required tools, and EXACT task instructions (from your plan)
+- The prompt MUST contain the FULL detailed design with exact file paths, component names, and technology choices
 - Submit via create_antigravity_task
 - Note: It will be processed by a headless Cloud Worker (+ Codex CLI) which has no display/browser
 The Cloud Worker + Codex CLI handles the actual coding autonomously.
@@ -56,7 +67,8 @@ After Codex delivers and the live preview is available:
 - NEVER tell the user to run localhost, npm run dev, or /gravity_sync. The Cloud Worker handles everything automatically.
 - Use repo URL "github.com/Ma3ras/gravity-claw.git" ONLY for changes to the bot itself. For new projects, create/use the appropriate repo.
 - For QUICK follow-up tasks (small fixes, tweaks): skip Phases 1-2, go straight to Phase 3 with a focused prompt.
-- For LARGE new projects: follow ALL phases. The extra 2 minutes of planning saves hours of rework.`;
+- For LARGE new projects: follow ALL phases. The extra 2 minutes of planning saves hours of rework.
+- QUALITY CHECK: If your final prompt to create_antigravity_task is shorter than 500 characters, it is TOO VAGUE. Go back and add more detail.`;
 
 /**
  * Run the agentic ReAct loop for a single user message.

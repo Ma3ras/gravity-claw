@@ -225,9 +225,8 @@ export async function runCodexAgent(prompt: string, relativeProjectPath: string,
 3. MONOREPO STRUCTURE: If this is a monorepo, the Node.js backend is in 'apps/bot' and the React Vite frontend is in 'apps/web'. If this is a flat repo (no apps folder), just work in the root.
 4. COMPONENT RULES: All React UI components MUST be created inside 'apps/web/src/components' or 'src/components'. Do NOT create React components in the backend bot folder.
 5. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. 
-6. 🚨 SERVER RAM LIMIT: This code runs on a weak Railway Docker container with 500MB RAM. You are STRICTLY FORBIDDEN from running 'npm run build', 'next build', or 'npx next build'. Doing so will crash the server! 
-7. HOW TO VERIFY: Use ONLY 'npx tsc --noEmit <PathToTheFileYouJustCreated>' or 'npx eslint <PathToTheFileYouJustCreated>' to verify your isolated React/Next.js code. Do NOT run 'npx tsc --noEmit' globally, because a fresh Next.js template often has unused variables that will paralyze you! If your isolated file check passes, consider the task DONE.
-8. 🚫 NO INTERACTIVE COMMANDS: You MUST append '-y', '--yes', or '-d' to any scaffolding commands (e.g. 'npx shadcn-ui@latest init -d'). If a command expects user input in the terminal, your process will HANG forever!
+6. HOW TO VERIFY: You MUST verify your isolated React/Next.js code compiles. You can run full build commands if necessary since this server has 12GB RAM.
+7. 🚫 NO INTERACTIVE COMMANDS: You MUST append '-y', '--yes', or '-d' to any scaffolding commands (e.g. 'npx shadcn-ui@latest init -d'). If a command expects user input in the terminal, your process will HANG forever!
 
 USER TASK:
 ${prompt}
