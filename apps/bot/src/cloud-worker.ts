@@ -319,6 +319,71 @@ ${prompt}
     }
 }
 
+export async function runQAAgent(prompt: string, relativeProjectPath: string, cloneDir: string): Promise<string> {
+    log.info(`[CloudWorker] Sending QA Task to Codex CLI...`);
+
+    try {
+        const targetDir = path.join(cloneDir, relativeProjectPath);
+        const cwd = fs.existsSync(targetDir) ? targetDir : cloneDir;
+
+        const strictInstructions = `
+⚠️ CRITICAL SYSTEM INSTRUCTIONS FOR QA AGENT ⚠️
+1. YOUR EXACT WORKSPACE PATH IS: ${cwd}
+2. You are the QA Tester Agent. The Developer has just completed a major milestone.
+3. Your job is to verify the application actually works in a browser environment.
+4. You have full access to execute commands. You SHOULD boot the development server (e.g., \`npm run dev\`) in the background.
+5. Once the server is running, write and execute a headless test script (e.g., using Node + Puppeteer/Playwright if installed, or basic fetch/curl if testing APIs) to verify the UI renders without fatal console errors.
+6. If the page loads successfully and the main UI components are present, reply with "QA APPROVED".
+7. If the server fails to boot, the page crashes, or there are breaking UI errors, reply with "QA REJECTED: [Reason]" and include the console logs.
+8. DO NOT write production code. Only write tests or execute commands to verify the application.
+
+QA TASK:
+${prompt}
+`;
+        log.debug(`[CloudWorker] Executing QA Agent in ${cwd}...`);
+
+        return await new Promise<string>((resolve, reject) => {
+            const child = spawn("codex", ["exec", "--sandbox", "danger-full-access", strictInstructions], {
+                shell: process.platform === 'win32',
+                cwd: cwd,
+                env: { ...process.env, CI: "true" }
+            });
+
+            let fullOutput = "";
+            let stderrOutput = "";
+            const timeoutId = setTimeout(() => {
+                log.error(`[CloudWorker] QA Agent timed out.`);
+                child.kill('SIGKILL');
+                reject(new Error(`QA Agent timed out.\nStdout:\n${fullOutput}\nStderr:\n${stderrOutput}`));
+            }, 10 * 60 * 1000);
+
+            child.stdout.on('data', (data) => {
+                const chunk = data.toString();
+                fullOutput += chunk;
+                process.stdout.write(data);
+            });
+            child.stderr.on('data', (data) => {
+                const chunk = data.toString();
+                stderrOutput += chunk;
+                process.stderr.write(data);
+            });
+            child.on('close', (code) => {
+                clearTimeout(timeoutId);
+                if (code === 0) resolve(fullOutput);
+                else reject(new Error(`QA Agent exited with ${code}\nOutput:\n${fullOutput}`));
+            });
+            child.on('error', (err) => {
+                clearTimeout(timeoutId);
+                reject(err);
+            });
+        });
+    } catch (error: any) {
+        log.error("[CloudWorker] QA Agent Error", { error: error.message });
+        throw error;
+    }
+}
+
+
 async function verifyCodexAuth(): Promise<void> {
     log.info("[CloudWorker] Verifying Codex CLI authentication...");
     try {
@@ -547,6 +612,7 @@ async function startWorker() {
                 taskId: id,
                 db,
                 developerRunCallback: runCodexAgent,
+                qaRunCallback: runQAAgent,
                 syncCallback: syncWorkspaceBack
             });
 

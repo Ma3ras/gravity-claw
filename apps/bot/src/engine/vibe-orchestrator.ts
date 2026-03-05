@@ -22,11 +22,12 @@ export interface VibeOptions {
     taskId: number;
     db: Client;
     developerRunCallback: (prompt: string, relativePath: string, cloneDir: string) => Promise<string>;
+    qaRunCallback?: (prompt: string, relativePath: string, cloneDir: string) => Promise<string>;
     syncCallback: (message: string, cloneDir: string) => Promise<boolean>;
 }
 
 export async function runVibeCodingSession(options: VibeOptions): Promise<boolean> {
-    const { prompt, relativePath, cloneDir, taskId, db, developerRunCallback, syncCallback } = options;
+    const { prompt, relativePath, cloneDir, taskId, db, developerRunCallback, qaRunCallback, syncCallback } = options;
     const cwd = relativePath ? path.join(cloneDir, relativePath) : cloneDir;
 
     // Phase 1: The Architect
@@ -280,7 +281,11 @@ Your job is to test the application in this repository.
         `;
 
         try {
-            await developerRunCallback(qaPrompt, relativePath, cloneDir);
+            if (qaRunCallback) {
+                await qaRunCallback(qaPrompt, relativePath, cloneDir);
+            } else {
+                await developerRunCallback(qaPrompt, relativePath, cloneDir);
+            }
             await syncCallback(`QA Agent created QA_REPORT.md`, cloneDir);
         } catch (e) {
             log.warn(`[VibeOrchestrator] QA Agent failed:`, { error: String(e) });
@@ -300,26 +305,28 @@ Your job is to test the application in this repository.
         const arch = fs.existsSync(path.join(cloneDir, "ARCHITECTURE.md")) ? fs.readFileSync(path.join(cloneDir, "ARCHITECTURE.md"), "utf-8") : "";
 
         const criticPrompt = `
-You are the Lead Critic.
-The user originally requested: "${prompt}"
-The Architect designed: 
-${arch}
+You are the Endgame Protocol Critic & Game Tester.
+The project is structurally complete. Now we enter the Rivalry & Self-Play Refinement phase.
 
-The QA Agent just tested the app and reported:
+The QA Agent tested the app and reported:
 ${qaReport}
 
-If the application is unacceptable or missing features requested by the user, you MUST append new tasks to fix these issues. 
-Format your response exactly like this if improvements are needed:
+YOUR ENDGAME TASKS:
+1. RIVAL COMPARISON: Evaluate the application's UX/UI, state-management, and mechanics against world-class competitors like Chess.com or Lichess. Are the micro-animations, piece dragging, highlight colors, and response times at a solid 9/10 level? 
+2. LOGICAL SELF-PLAY: Do the game mechanics definitively support a full 50-move Stockfish self-play game without crashing the React state?
+3. If the app is NOT a 9/10 or has any logical flaws, you MUST write a refinement plan to polish it.
+
+Format your response exactly like this if refinements are needed:
 ===FILE:IMPROVEMENTS.md===
-(Write an explanation of what needs to be fixed and why)
+(Detailed explanation of what falls short of Chess.com/Lichess standards, missing quality polish, and bug fixes)
 ===END===
 
 ===APPEND_TODO===
-- [ ] Fix bug X
-- [ ] Improve feature Y
+- [ ] Refinement: Move Stockfish calculations to a WebWorker to prevent UI blocking
+- [ ] Refinement: Add smooth CSS transform piece-sliding animations
 ===END===
 
-If the application is excellent and the QA report issues are extremely minor or negligible, reply with:
+If the application is a flawless 9/10, matches industry giants, and QA is PERFECT, reply EXACTLY with:
 APPROVED
         `;
 
@@ -338,7 +345,7 @@ APPROVED
         }
 
         // Critic Rejected -> we must restart Dev loop
-        log.info(`[VibeOrchestrator] Task #${taskId} - Critic requested improvements. Looping Developer.`);
+        log.info(`[VibeOrchestrator] Task #${taskId} - Critic requested improvements.Looping Developer.`);
 
         const impMatch = criticOut.match(/===FILE:IMPROVEMENTS\.md===\n([\s\S]*?)\n===END===/);
         const appendMatch = criticOut.match(/===APPEND_TODO===\n([\s\S]*?)\n===END===/);
@@ -348,7 +355,7 @@ APPROVED
         }
         if (appendMatch && appendMatch[1]) {
             fs.appendFileSync(path.join(cloneDir, "TODO.md"), "\n" + appendMatch[1].trim());
-            await syncCallback(`Critic appended new tasks (QA failed)`, cloneDir);
+            await syncCallback(`Critic appended new tasks(QA failed)`, cloneDir);
 
             // Re-run the Phase 2 Developer Execution loop for the new items!
             // We just let the while(keepRunning) loop handle it...
@@ -365,17 +372,17 @@ APPROVED
 
 async function updateTaskStatus(db: Client, id: number, message: string) {
     try {
-        log.info(`[VibeOrchestrator] Update -> ${message}`);
+        log.info(`[VibeOrchestrator] Update -> ${message} `);
         // We push this directly to the orchestrator_messages so the user can query it via "Check Status"
         await db.execute({
-            sql: `INSERT INTO orchestrator_messages (project_id, message, status) VALUES (?, ?, 'unread')`,
+            sql: `INSERT INTO orchestrator_messages(project_id, message, status) VALUES(?, ?, 'unread')`,
             args: [String(id), message]
         });
 
         // Also update the main task result_data to hold the current step
         await db.execute({
-            sql: `UPDATE antigravity_tasks SET result_data = ? WHERE id = ?`,
-            args: [`Status: ${message}`, id]
+            sql: `UPDATE antigravity_tasks SET result_data = ? WHERE id = ? `,
+            args: [`Status: ${message} `, id]
         });
     } catch (e) { }
 }
