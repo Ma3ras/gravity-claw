@@ -165,14 +165,34 @@ export async function syncWorkspaceBack(message: string, cloneDir: string): Prom
 
         await execPromise(`git commit -m "feat(ai): ${message}"`, { cwd: cloneDir });
 
-        // Extremely important: If GitHub auto-initialized with a README, we must pull it first before pushing to avoid conflicts
+        // Extremely important: Sync with remote before pushing to avoid non-fast-forward errors
+        // Step 1: Fetch the latest remote state
         try {
-            log.info(`[CloudWorker] Rebasing from remote just in case...`);
-            await execPromise(`git pull origin main --rebase`, { cwd: cloneDir }).catch(() =>
-                execPromise(`git pull origin master --rebase`, { cwd: cloneDir })
-            );
+            await execPromise(`git fetch origin`, { cwd: cloneDir });
         } catch (e) {
-            log.warn(`[CloudWorker] Rebase failed, probably a completely empty repo. Skipping rebase.`);
+            log.warn(`[CloudWorker] git fetch failed, remote might not exist yet. Continuing...`);
+        }
+
+        // Step 2: Try to rebase our local commits on top of the remote
+        let rebaseSucceeded = false;
+        try {
+            log.info(`[CloudWorker] Rebasing local changes onto remote...`);
+            await execPromise(`git rebase origin/main --autostash`, { cwd: cloneDir });
+            rebaseSucceeded = true;
+        } catch (e1) {
+            // Rebase might fail due to conflicts or because origin/main doesn't exist yet
+            try {
+                await execPromise(`git rebase --abort`, { cwd: cloneDir });
+            } catch { /* no rebase in progress */ }
+
+            // Try master branch as fallback
+            try {
+                await execPromise(`git rebase origin/master --autostash`, { cwd: cloneDir });
+                rebaseSucceeded = true;
+            } catch (e2) {
+                try { await execPromise(`git rebase --abort`, { cwd: cloneDir }); } catch { }
+                log.warn(`[CloudWorker] Rebase failed (likely empty repo or conflict). Will force-push if normal push fails.`);
+            }
         }
 
         // Detect the actual local branch name and push to it
@@ -193,11 +213,19 @@ export async function syncWorkspaceBack(message: string, cloneDir: string): Prom
             } catch { /* branch might already exist */ }
         }
 
+        // Step 3: Try normal push first
         try {
             await execPromise(`git push -u origin ${branchName}`, { cwd: cloneDir });
         } catch (e1) {
-            log.warn(`[CloudWorker] Failed to push to ${branchName}, trying HEAD:refs/heads/main...`);
-            await execPromise(`git push origin HEAD:refs/heads/main`, { cwd: cloneDir });
+            // Step 4: If normal push fails, force-with-lease (safe force push that protects other people's commits)
+            log.warn(`[CloudWorker] Normal push failed. Using --force-with-lease as fallback...`);
+            try {
+                await execPromise(`git push --force-with-lease origin ${branchName}`, { cwd: cloneDir });
+            } catch (e2) {
+                // Step 5: Last resort — force push (this is a solo AI workspace, so it's safe)
+                log.warn(`[CloudWorker] force-with-lease also failed. Using --force as absolute last resort.`);
+                await execPromise(`git push --force origin ${branchName}`, { cwd: cloneDir });
+            }
         }
         log.info(`[CloudWorker] Changes successfully pushed to GitHub.`);
         return true;
