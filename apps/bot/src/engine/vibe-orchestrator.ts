@@ -58,8 +58,8 @@ Example:
         archOutput = "";
     }
 
-    // Save raw output for debugging
-    fs.writeFileSync(path.join(cwd, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
+    // Save raw output for debugging (always in root)
+    fs.writeFileSync(path.join(cloneDir, "ARCHITECT_RAW_OUTPUT.md"), archOutput);
 
     // Fallback: If no checkboxes exist, the LLM completely failed to follow the format.
     if (!archOutput.includes("- [ ]")) {
@@ -77,8 +77,9 @@ Example:
 
     // Foolproof parsing: We simply inject the ENTIRE output into both files.
     // The Developer loop iterates by blindly searching for '- [ ]' in TODO.md, ignoring everything else!
-    fs.writeFileSync(path.join(cwd, "ARCHITECTURE.md"), archOutput);
-    fs.writeFileSync(path.join(cwd, "TODO.md"), archOutput);
+    // ALWAYS save to root repository folder, not the nested target directory.
+    fs.writeFileSync(path.join(cloneDir, "ARCHITECTURE.md"), archOutput);
+    fs.writeFileSync(path.join(cloneDir, "TODO.md"), archOutput);
 
     // Initial commit of the plan
     await syncCallback(`Architect created ARCHITECTURE.md and TODO.md`, cloneDir);
@@ -103,8 +104,8 @@ Example:
                 break;
             }
 
-            const todoContent = fs.existsSync(path.join(cwd, "TODO.md"))
-                ? fs.readFileSync(path.join(cwd, "TODO.md"), "utf-8")
+            const todoContent = fs.existsSync(path.join(cloneDir, "TODO.md"))
+                ? fs.readFileSync(path.join(cloneDir, "TODO.md"), "utf-8")
                 : "";
 
             // Find the first uncompleted task
@@ -178,7 +179,7 @@ ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR 
             if (stepAttempts >= MAX_STEP_ATTEMPTS) {
                 log.warn(`[VibeOrchestrator] Task #${taskId} - Step '${stepName}' hit ${MAX_STEP_ATTEMPTS} retry attempts. Force-approving to prevent infinite loop.`);
                 lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
-                fs.writeFileSync(path.join(cwd, "TODO.md"), lines.join("\n"));
+                fs.writeFileSync(path.join(cloneDir, "TODO.md"), lines.join("\n"));
                 previousRejectionReason = "";
                 stepAttempts = 0;
                 await syncCallback(`Force-approved step after ${MAX_STEP_ATTEMPTS} retries: ${stepName}`, cloneDir);
@@ -224,7 +225,7 @@ If REJECTED, append a brief explanation of what is missing or broken.
             } else {
                 log.info(`[VibeOrchestrator] Task #${taskId} - Reviewer APPROVED step: ${stepName}`);
                 lines[nextTaskIndex] = lines[nextTaskIndex].replace("- [ ]", "- [x]");
-                fs.writeFileSync(path.join(cwd, "TODO.md"), lines.join("\n"));
+                fs.writeFileSync(path.join(cloneDir, "TODO.md"), lines.join("\n"));
 
                 previousRejectionReason = ""; // Clear on success
                 await syncCallback(`Reviewer approved step: ${stepName}`, cloneDir);
@@ -256,7 +257,8 @@ Your job is to test the application in this repository.
             log.warn(`[VibeOrchestrator] QA Agent failed:`, { error: String(e) });
         }
 
-        const qaReportPath = path.join(cwd, "QA_REPORT.md");
+        // QA report always goes to root too
+        const qaReportPath = path.join(cloneDir, "QA_REPORT.md");
         const qaReport = fs.existsSync(qaReportPath) ? fs.readFileSync(qaReportPath, "utf-8") : "PERFECT";
 
         if (qaReport.includes("PERFECT") || qaReport.trim() === "") {
@@ -266,7 +268,7 @@ Your job is to test the application in this repository.
 
         // 3b. Critic Agent
         await updateTaskStatus(db, taskId, `Critic Reviewing QA Report...`);
-        const arch = fs.existsSync(path.join(cwd, "ARCHITECTURE.md")) ? fs.readFileSync(path.join(cwd, "ARCHITECTURE.md"), "utf-8") : "";
+        const arch = fs.existsSync(path.join(cloneDir, "ARCHITECTURE.md")) ? fs.readFileSync(path.join(cloneDir, "ARCHITECTURE.md"), "utf-8") : "";
 
         const criticPrompt = `
 You are the Lead Critic.
@@ -313,10 +315,10 @@ APPROVED
         const appendMatch = criticOut.match(/===APPEND_TODO===\n([\s\S]*?)\n===END===/);
 
         if (impMatch && impMatch[1]) {
-            fs.writeFileSync(path.join(cwd, "IMPROVEMENTS.md"), impMatch[1].trim());
+            fs.writeFileSync(path.join(cloneDir, "IMPROVEMENTS.md"), impMatch[1].trim());
         }
         if (appendMatch && appendMatch[1]) {
-            fs.appendFileSync(path.join(cwd, "TODO.md"), "\n" + appendMatch[1].trim());
+            fs.appendFileSync(path.join(cloneDir, "TODO.md"), "\n" + appendMatch[1].trim());
             await syncCallback(`Critic appended new tasks (QA failed)`, cloneDir);
 
             // Re-run the Phase 2 Developer Execution loop for the new items!
