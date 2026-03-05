@@ -240,7 +240,7 @@ export async function runAgent(
             // If the LLM claims to have created a task but we know it didn't call the tool
             // (The actual tool always returns "Ticket #XYZ successfully created", which the LLM would see in the loop)
             const isProbablyHallucinatingTask = (
-                (/Task\s*#\d+/i.test(reply) || /Aufgabe\s*#\d+/i.test(reply) || /erstellt/i.test(reply) || /Antigravity/i.test(reply)) &&
+                (/Task\s*#\d+/i.test(reply) || /Aufgabe\s*#\d+/i.test(reply) || /Ticket\s*#\d+/i.test(reply)) &&
                 !messages.some(m => m.role === "tool" && typeof m.content === "string" && m.content.includes("Ticket #")) &&
                 (/test_projekt/i.test(userMessage) || /design/i.test(userMessage) || /repo/i.test(userMessage) || /füge/i.test(userMessage) || /add/i.test(userMessage))
             );

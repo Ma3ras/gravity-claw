@@ -472,8 +472,6 @@ async function startWorker() {
     if (process.env.CODEX_AUTH_JSON) {
         fs.writeFileSync(path.join(codexDir, "auth.json"), process.env.CODEX_AUTH_JSON);
         log.info("[CloudWorker] Injected Codex auth.json from environment.");
-    } else {
-        log.warn("[CloudWorker] CODEX_AUTH_JSON is missing! Codex execution will fail.");
     }
 
     if (process.env.CODEX_CONFIG_TOML) {
