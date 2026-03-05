@@ -116,7 +116,8 @@ Do NOT group files or components into a single step. EVERY single React componen
 
             // Find the first uncompleted task
             const lines = todoContent.split("\n");
-            const nextTaskIndex = lines.findIndex(line => line.trim().startsWith("- [ ]"));
+            // Only match literal steps, preventing it from executing random checkboxes (like Acceptance Criteria)
+            const nextTaskIndex = lines.findIndex(line => line.trim().match(/^- \[\s\] Step/i));
 
             if (nextTaskIndex === -1) {
                 log.info(`[VibeOrchestrator] Task #${taskId} - TODO.md is fully completed! Transitioning to QA/Critic.`);
