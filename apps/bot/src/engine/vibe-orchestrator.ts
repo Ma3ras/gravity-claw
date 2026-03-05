@@ -15,11 +15,14 @@ const execPromise = async (command: string, options: any = {}) => {
 
 import { config } from "../config.js";
 
-// Make the orchestrator agnostic. It uses the same API key and Base URL as the Telegram Bot main LLM.
-// If the user uses OpenRouter, we use the OpenRouter format. If it's pure OpenAI, it works too.
-const openai = new OpenAI({
-    apiKey: config.llmApiKey || process.env.OPENAI_API_KEY,
-    baseURL: config.llmBaseUrl.includes("api.openai.com") ? undefined : config.llmBaseUrl
+// CODING PIPELINE: Uses separate OpenAI/Codex API key, completely independent from the Telegram bot's LLM (kimi, etc.)
+// The Architect, Reviewer, and Critic all use this client. Only the Telegram chat uses config.llmApiKey.
+const CODEX_API_KEY = process.env.CODEX_API_KEY || process.env.OPENAI_API_KEY || config.llmApiKey;
+const CODEX_MODEL = process.env.CODEX_ORCHESTRATOR_MODEL || "o4-mini"; // Fast, cheap, great for code review
+
+const codexClient = new OpenAI({
+    apiKey: CODEX_API_KEY,
+    // Always use OpenAI API directly for the coding pipeline, never OpenRouter
 });
 
 export interface VibeOptions {
@@ -56,8 +59,8 @@ Example:
 - [ ] Step 3: Write code
     `;
 
-    const archResponse = await openai.chat.completions.create({
-        model: config.llmModel, // Use centrally configured model instead of hardcoded gpt-4o-mini
+    const archResponse = await codexClient.chat.completions.create({
+        model: CODEX_MODEL, // Use Codex/OpenAI model, NOT the Telegram bot's LLM
         messages: [{ role: "system", content: archPrompt }],
     });
 
@@ -206,28 +209,21 @@ ${previousRejectionReason ? `\n🚨 THE REVIEWER REJECTED YOUR LAST ATTEMPT FOR 
             const reviewPrompt = `
 You are the Reviewer. The Developer just tried to complete this task: "${stepName}".
 
-Here is the Developer's console output (what they actually did and thought):
-\`\`\`
-${devOutputTrimmed}
-\`\`\`
-
 Here is the Git Diff of their changes:
-${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications or only created empty directories which git ignores.)" : gitDiffStr.substring(0, 10000)}
+${gitDiffStr.trim() === "" ? "(The git diff is empty. The developer made no code modifications.)" : gitDiffStr.substring(0, 10000)}
 
-Analyze the diff AND the developer's console output. Did the Developer successfully make the necessary changes for the task?
-IMPORTANT RULES FOR EMPTY DIFFS:
-1. If the task was merely to read, analyze, or plan, and the diff is empty, you MUST reply APPROVED.
-2. If the task was to install a dependency or configure something (e.g. Tailwind), and the diff is empty, ASSUME the Developer checked and found it was ALREADY INSTALLED or configured. Do NOT reject it. You MUST reply APPROVED.
-3. If the task was to create DIRECTORIES, remember that git ignores empty directories! If the Developer output says they created the directories, you MUST reply APPROVED even if the diff is empty!
-4. If the diff is empty for any other reason, consider if the task might have already been completed in a previous step. If so, reply APPROVED.
-5. If the developer's console output shows a SUCCESSFUL build or type-check (e.g. 'built in X seconds', 'exit code 0', '✓'), and the diff is empty, the task was ALREADY COMPLETE. You MUST reply APPROVED.
+Analyze the diff. Did the Developer successfully make the necessary code changes for the task?
+RULES:
+1. ONLY look at the git diff. If the diff shows correct code changes for the task, reply APPROVED.
+2. If the diff is empty, the task was ALREADY COMPLETE from a previous step. Reply APPROVED.
+3. If the diff shows incorrect, incomplete, or broken code, reply REJECTED with a brief explanation.
 
 Reply with a single word at the very beginning of your response: APPROVED or REJECTED.
 If REJECTED, append a brief explanation of what is missing or broken.
             `;
 
-            const reviewResponse = await openai.chat.completions.create({
-                model: config.llmModel,
+            const reviewResponse = await codexClient.chat.completions.create({
+                model: CODEX_MODEL,
                 messages: [{ role: "system", content: reviewPrompt as string } as any],
             });
 
@@ -310,8 +306,8 @@ If the application is excellent and the QA report issues are extremely minor or 
 APPROVED
         `;
 
-        const criticResponse = await openai.chat.completions.create({
-            model: config.llmModel,
+        const criticResponse = await codexClient.chat.completions.create({
+            model: CODEX_MODEL,
             messages: [{ role: "system", content: criticPrompt }],
         });
 
