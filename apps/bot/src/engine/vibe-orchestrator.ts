@@ -47,6 +47,9 @@ Example:
 - [ ] Step 1: Initialize project
 - [ ] Step 2: Install dependencies
 - [ ] Step 3: Write code
+    
+CRITICAL INSTRUCTION FOR CHECKLIST GRANULARITY: 
+Do NOT group files or components into a single step. EVERY single React component, custom hook, utility file, or significant logic block MUST have its own individual step in the checklist. This ensures the Developer agent can focus safely on one file at a time.
     `;
 
     // Run Architect through Codex CLI (same auth as Developer - device auth, no API key)
