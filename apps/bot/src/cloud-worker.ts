@@ -274,13 +274,26 @@ ${prompt}
 
             let fullOutput = "";
             let stderrOutput = ""; // Capture stderr separately for debugging/logging
+            let isDone = false;
 
-            // 10 minute timeout to prevent indefinite hangs on interactive prompts
+            const cleanupChild = () => {
+                if (!child.killed) {
+                    try {
+                        child.kill('SIGTERM');
+                        setTimeout(() => {
+                            if (!child.killed) child.kill('SIGKILL');
+                        }, 2000);
+                    } catch (e) { }
+                }
+            };
+
+            // 15 minute timeout to prevent indefinite hangs on interactive prompts
             const timeoutId = setTimeout(() => {
-                log.error(`[CloudWorker] Codex process timed out after 10 minutes. Killing process.`);
-                child.kill('SIGKILL');
-                reject(new Error(`Codex process timed out after 10 minutes.\nStdout:\n${fullOutput}\nStderr:\n${stderrOutput}`));
-            }, 10 * 60 * 1000);
+                isDone = true;
+                log.error(`[CloudWorker] Codex process timed out after 15 minutes. Killing process.`);
+                cleanupChild();
+                reject(new Error(`Codex process timed out after 15 minutes.\nStdout:\n${fullOutput}\nStderr:\n${stderrOutput}`));
+            }, 15 * 60 * 1000);
 
             child.stdout.on('data', (data) => {
                 const chunk = data.toString();
@@ -295,7 +308,11 @@ ${prompt}
             });
 
             child.on('close', (code) => {
+                if (isDone) return;
+                isDone = true;
                 clearTimeout(timeoutId);
+                cleanupChild();
+
                 if (code === 0) {
                     log.info(`[CloudWorker] Codex execution finished successfully.`);
                     resolve(fullOutput);
@@ -305,7 +322,10 @@ ${prompt}
             });
 
             child.on('error', (err) => {
+                if (isDone) return;
+                isDone = true;
                 clearTimeout(timeoutId);
+                cleanupChild();
                 reject(err);
             });
         });
@@ -353,9 +373,23 @@ ${prompt}
 
             let fullOutput = "";
             let stderrOutput = "";
+            let isDone = false;
+
+            const cleanupChild = () => {
+                if (!child.killed) {
+                    try {
+                        child.kill('SIGTERM');
+                        setTimeout(() => {
+                            if (!child.killed) child.kill('SIGKILL');
+                        }, 2000);
+                    } catch (e) { }
+                }
+            };
+
             const timeoutId = setTimeout(() => {
+                isDone = true;
                 log.error(`[CloudWorker] QA Agent timed out.`);
-                child.kill('SIGKILL');
+                cleanupChild();
                 reject(new Error(`QA Agent timed out.\nStdout:\n${fullOutput}\nStderr:\n${stderrOutput}`));
             }, 10 * 60 * 1000);
 
@@ -370,12 +404,18 @@ ${prompt}
                 process.stderr.write(data);
             });
             child.on('close', (code) => {
+                if (isDone) return;
+                isDone = true;
                 clearTimeout(timeoutId);
+                cleanupChild();
                 if (code === 0) resolve(fullOutput);
                 else reject(new Error(`QA Agent exited with ${code}\nOutput:\n${fullOutput}`));
             });
             child.on('error', (err) => {
+                if (isDone) return;
+                isDone = true;
                 clearTimeout(timeoutId);
+                cleanupChild();
                 reject(err);
             });
         });
