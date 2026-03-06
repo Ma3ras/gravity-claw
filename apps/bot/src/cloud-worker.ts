@@ -258,7 +258,7 @@ export async function runCodexAgent(prompt: string, relativeProjectPath: string,
 5. MANDATORY VERIFICATION: You are an autonomous agent. Before you consider this task complete, you MUST verify your work compiles. 
 6. HOW TO VERIFY: You MUST verify your isolated React/Next.js code compiles. You can run full build commands if necessary since this server has 12GB RAM.
 7. 🚫 NO INTERACTIVE COMMANDS: You MUST append '-y', '--yes', or '-d' to any scaffolding commands (e.g. 'npx shadcn-ui@latest init -d'). If a command expects user input in the terminal, your process will HANG forever!
-8. 🛑 CRITICAL CLOUD WORKER RULE: You MUST ensure no background processes (like Vite dev servers or lingering test watchers) are left running when your script exits. Before you finish testing, ALWAYS run \`killall node\` or use \`fuser -k [port]/tcp\`. If you leave zombie processes running, the server will crash with an EAGAIN error!
+8. 🛑 CRITICAL CLOUD WORKER RULE: You MUST ensure no background processes (like Vite dev servers) are left running when your script exits. Before you finish testing, ALWAYS use \`npx kill-port [port]\` or \`fuser -k [port]/tcp\`. NEVER use \`killall node\` or \`pkill node\`, as this will kill the primary Cloud Worker AI supervisor and crash the system!
 
 USER TASK:
 ${prompt}
@@ -337,7 +337,7 @@ export async function runQAAgent(prompt: string, relativeProjectPath: string, cl
 6. If the page loads successfully and the main UI components are present, reply with "QA APPROVED".
 7. If the server fails to boot, the page crashes, or there are breaking UI errors, reply with "QA REJECTED: [Reason]" and include the console logs.
 8. DO NOT write production code. Only write tests or execute commands to verify the application.
-9. 🛑 CRITICAL CLOUD WORKER RULE: You MUST ensure no background processes (like Vite or Node) are left running when your script exits. Before you finish, ALWAYS run \`killall node\` or use \`fuser -k [port]/tcp\` (e.g., 5173). If you leave zombie processes running, the server will crash with an EAGAIN error!
+9. 🛑 CRITICAL CLOUD WORKER RULE: You MUST ensure no background processes (like Vite) are left running when your script exits. Before you finish, ALWAYS use \`npx kill-port [port]\` or \`fuser -k [port]/tcp\` (e.g., 5173). NEVER use \`killall node\` or \`pkill node\`, as this will kill the primary Cloud Worker AI supervisor and crash the system!
 
 QA TASK:
 ${prompt}
