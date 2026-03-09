@@ -111,7 +111,9 @@ export async function runAgent(
     if (memory) {
         try {
             const [memories, sessionCount] = await Promise.all([
-                memory.recall(userMessage, 5).catch((error) => {
+                // For autonomous background checks (heartbeat/monitor), do NOT perform semantic recall 
+                // based on the system prompt, as this pulls up random stale facts and causes hallucinations!
+                skipLogging ? [] : memory.recall(userMessage, 5).catch((error) => {
                     log.debug("Memory recall failed", {
                         error: error instanceof Error ? error.message : String(error),
                     });

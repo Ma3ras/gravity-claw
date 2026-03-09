@@ -26,10 +26,15 @@ export function startHeartbeat(
         const now = new Date().toLocaleString("en-US", { timeZone: "Europe/Berlin" });
         const systemPrompt = `[SYSTEM HEARTBEAT]
 The current time is ${now}.
-This is an autonomous background check. Analyze your memory and the current time.
-Do you need to proactively send a message to the user? (e.g., a morning briefing, a reminder, or a follow-up on a previous conversation).
+This is an autonomous background check. Analyze your recent messages and the current time.
+Do you need to proactively send a message to the user? (e.g., a morning briefing, a reminder, or a follow-up on a recent conversation).
 
-If you DO need to send a message, write the message normally.
+⛔ CRITICAL NEGATIVE CONSTRAINTS ⛔
+1. DO NOT start, propose, or mention any coding projects, tasks, or scrapers. 
+2. DO NOT mention old, stale ideas from the past. Only act on immediate, time-sensitive reminders or daily briefings.
+3. You are just checking in. You are NOT here to build anything right now.
+
+If you DO need to send a time-sensitive message or briefing, write the message normally.
 If you DO NOT need to send anything right now, reply EXACTLY with the word "HEARTBEAT_OK" (and nothing else).`;
 
         // Check for each allowed user in Telegram
