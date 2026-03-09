@@ -106,7 +106,6 @@ export async function createTables(db: Client): Promise<void> {
 
         CREATE INDEX IF NOT EXISTS idx_orchestrator_status ON orchestrator_messages(status);
         CREATE INDEX IF NOT EXISTS idx_monitors_last_run ON monitors(last_run, interval_minutes);
-        CREATE INDEX IF NOT EXISTS idx_facts_accessed ON facts(last_accessed);
     `);
 
     // ── Migrations: Self-evolving memory columns ──────────────────
@@ -128,6 +127,9 @@ export async function createTables(db: Client): Promise<void> {
             // Column already exists — ignore
         }
     }
+
+    // Create indexes that depend on migrated columns *after* migrations run
+    await db.execute(`CREATE INDEX IF NOT EXISTS idx_facts_accessed ON facts(last_accessed);`);
 
     log.info("Database tables ready");
 }
